@@ -2,7 +2,7 @@
 *.asv
 *.m~
 *.autosave
-*.slx.r*
+# *.slx.r* these are old backups that may be useful
 *.mdl.r*
 
 # Derived content-obscured files

@@ -3,13 +3,7 @@ clc
 run RRpendulum_forkin_dyn.mlx %[output:835b39ec]
 %%
 % define numerical values for all parameters
-m_num = 0.0126; % kg
-l_num = 0.253; % m
-r_num = 0.151; % m
-g_num = 9.80665; % m/s²
-b1_num = 0.0001; %Nms/rad
-b2_num = 0.00003; %Nms/rad
-satlimits = [64.34 19.63]; % [rad/s², rad/s]
+run RRpendulum_Parameters_num.m
 %[text] **Excitation:Forced q1 movement**
 %[text] assume that the motion(position, acceleration, velocity) of q1 is determined by the stepper drive, assuming it can deliver enough torque to not skip any steps ==\> only solve equation for v\_dot(2)
 v1ampl = 3; %rad/s

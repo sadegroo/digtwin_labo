@@ -1,8 +1,14 @@
 clear
 clc
-% Load precomputed symbolic EOM (regenerate with: run RRpendulum_forkin_dyn_noimage.m)
+
+if isempty(matlab.project.rootProject)
+    openProject('C:/Users/u0130154/MATLAB/projects/digtwin_labo/digtwin_labo.prj');
+end
 prj = matlab.project.rootProject;
-load(fullfile(prj.RootFolder, 'data', 'RRpendulum_EOM.mat'), 'EOM');
+data_dir = fullfile(prj.RootFolder, 'data');
+
+load(fullfile(data_dir, 'RRpendulum_EOM.mat'), 'EOM');
+load(fullfile(data_dir, 'RRpendulum_params_BLDC.mat'), 'params');
 
 % Unpack symbolic variables for linearization and parameter substitution
 f    = EOM.nlss.f;
@@ -15,8 +21,26 @@ g    = sym_params(1); l   = sym_params(2); r    = sym_params(3);
 m    = sym_params(4); b_1 = sym_params(5); b_2  = sym_params(6);
 Iz_1 = sym_params(7);
 
-% get numerical parameters
-run RRpendulum_Parameters_num_BLDC.m
+% Unpack numerical variables
+% Mechanism
+m_num   = params.mechanism.m;
+l_num   = params.mechanism.l;
+r_num   = params.mechanism.r;
+g_num  = params.mechanism.g;
+b1_num  = params.mechanism.b1;
+b2_num  = params.mechanism.b2;
+Iz_1_num = params.mechanism.Iz_1;
+
+% Sensing
+q1_cpt = params.sensing.q1_cpt;
+q2_cpt = params.sensing.q2_cpt;
+
+% Actuation
+u_sat = params.actuation.u_sat;
+
+% Sample time
+Ts = 1/1000;  % [s] (1 kHz, matches hardware interface)
+
 %%
 %[text] Linearize the system around the inverted position.
 %[text] Use both ODE's and torque as input
@@ -56,7 +80,7 @@ B_lin_d_num = sysd.B;
 C_lin_d_num = sysd.C;
 
 % set up state feedback
-Q = diag([100, 1, 1, 1]);  % State cost matrix (Q(1,1) penalizes q1 tracking error)
+Q = diag([20, 1, 50, 1]);  % State cost matrix (Q(1,1) penalizes q1 tracking error)
 R = 10000;             % Control effort cost
 K = lqr(sys, Q, R)  % LQR feedback gain %[output:657ac2b7]
 Kd = lqrd(A_lin_num, B_lin_num, Q, R, Ts)  % LQR feedback gain discrete %[output:1b53e105]
@@ -249,7 +273,7 @@ fprintf('Design saved to: %s\n', save_path); %[output:7839b6ac]
 %[appendix]{"version":"1.0"}
 %---
 %[metadata:view]
-%   data: {"layout":"onright","rightPanelPercent":36.2}
+%   data: {"layout":"onright","rightPanelPercent":13}
 %---
 %[output:7c01c9ee]
 %   data: {"dataType":"symbolic","outputData":{"name":"A_lin","value":"\\left(\\begin{array}{cccc}\n0 & 1 & 0 & 0\\\\\n0 & -\\frac{b_1 }{{\\textrm{Iz}}_1 } & \\frac{g\\,m\\,r}{{\\textrm{Iz}}_1 } & -\\frac{b_2 \\,r}{{\\textrm{Iz}}_1 \\,l}\\\\\n0 & 0 & 0 & 1\\\\\n0 & -\\frac{b_1 \\,r}{{\\textrm{Iz}}_1 \\,l} & \\frac{g\\,l\\,m^2 \\,r^2 +{\\textrm{Iz}}_1 \\,g\\,l\\,m}{{\\textrm{Iz}}_1 \\,l^2 \\,m} & -\\frac{b_2 \\,m\\,r^2 +{\\textrm{Iz}}_1 \\,b_2 }{{\\textrm{Iz}}_1 \\,l^2 \\,m}\n\\end{array}\\right)"}}
@@ -282,16 +306,16 @@ fprintf('Design saved to: %s\n', save_path); %[output:7839b6ac]
 %   data: {"dataType":"text","outputData":{"text":"\nsys =\n \n  A = \n            x1       x2       x3       x4\n   x1        0        1        0        0\n   x2        0   -3.333    621.9  -0.5968\n   x3        0        0        0        1\n   x4        0   -1.989      410  -0.3934\n \n  B = \n              u1\n   x1          0\n   x2  3.333e+04\n   x3          0\n   x4  1.989e+04\n \n  C = \n       x1  x2  x3  x4\n   y1   1   0   0   0\n   y2   0   0   1   0\n \n  D = \n       u1\n   y1   0\n   y2   0\n \nContinuous-time state-space model.\n<a href=\"matlab:disp(char([10 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 65 58 32 91 52 215 52 32 100 111 117 98 108 101 93 10 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 66 58 32 91 52 215 49 32 100 111 117 98 108 101 93 10 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 67 58 32 91 50 215 52 32 100 111 117 98 108 101 93 10 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 68 58 32 91 50 215 49 32 100 111 117 98 108 101 93 10 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 69 58 32 91 93 10 32 32 32 32 32 32 32 32 32 32 79 102 102 115 101 116 115 58 32 91 93 10 32 32 32 32 32 32 32 32 32 32 32 83 99 97 108 101 100 58 32 48 10 32 32 32 32 32 32 32 32 83 116 97 116 101 78 97 109 101 58 32 123 52 215 49 32 99 101 108 108 125 10 32 32 32 32 32 32 32 32 83 116 97 116 101 80 97 116 104 58 32 123 52 215 49 32 99 101 108 108 125 10 32 32 32 32 32 32 32 32 83 116 97 116 101 85 110 105 116 58 32 123 52 215 49 32 99 101 108 108 125 10 32 32 32 32 73 110 116 101 114 110 97 108 68 101 108 97 121 58 32 91 48 215 49 32 100 111 117 98 108 101 93 10 32 32 32 32 32 32 32 73 110 112 117 116 68 101 108 97 121 58 32 48 10 32 32 32 32 32 32 79 117 116 112 117 116 68 101 108 97 121 58 32 91 50 215 49 32 100 111 117 98 108 101 93 10 32 32 32 32 32 32 32 32 73 110 112 117 116 78 97 109 101 58 32 123 39 39 125 10 32 32 32 32 32 32 32 32 73 110 112 117 116 85 110 105 116 58 32 123 39 39 125 10 32 32 32 32 32 32 32 73 110 112 117 116 71 114 111 117 112 58 32 91 49 215 49 32 115 116 114 117 99 116 93 10 32 32 32 32 32 32 32 79 117 116 112 117 116 78 97 109 101 58 32 123 50 215 49 32 99 101 108 108 125 10 32 32 32 32 32 32 32 79 117 116 112 117 116 85 110 105 116 58 32 123 50 215 49 32 99 101 108 108 125 10 32 32 32 32 32 32 79 117 116 112 117 116 71 114 111 117 112 58 32 91 49 215 49 32 115 116 114 117 99 116 93 10 32 32 32 32 32 32 32 32 32 32 32 32 78 111 116 101 115 58 32 91 48 215 49 32 115 116 114 105 110 103 93 10 32 32 32 32 32 32 32 32 32 85 115 101 114 68 97 116 97 58 32 91 93 10 32 32 32 32 32 32 32 32 32 32 32 32 32 78 97 109 101 58 32 39 39 10 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 84 115 58 32 48 10 32 32 32 32 32 32 32 32 32 84 105 109 101 85 110 105 116 58 32 39 115 101 99 111 110 100 115 39 10 32 32 32 32 32 83 97 109 112 108 105 110 103 71 114 105 100 58 32 91 49 215 49 32 115 116 114 117 99 116 93 10]))\">Model Properties<\/a>\n","truncated":false}}
 %---
 %[output:657ac2b7]
-%   data: {"dataType":"matrix","outputData":{"columns":4,"name":"K","rows":1,"type":"double","value":[["-0.1000","-0.0434","0.5974","0.0931"]]}}
+%   data: {"dataType":"matrix","outputData":{"columns":4,"name":"K","rows":1,"type":"double","value":[["-0.0447","-0.0254","0.4122","0.0627"]]}}
 %---
 %[output:1b53e105]
-%   data: {"dataType":"matrix","outputData":{"columns":4,"name":"Kd","rows":1,"type":"double","value":[["-0.0826","-0.0359","0.4981","0.0772"]]}}
+%   data: {"dataType":"matrix","outputData":{"columns":4,"name":"Kd","rows":1,"type":"double","value":[["-0.0370","-0.0210","0.3454","0.0521"]]}}
 %---
 %[output:2c7562df]
-%   data: {"dataType":"matrix","outputData":{"columns":1,"exponent":"2","name":"ctrpoles","rows":4,"type":"complex","value":[["-3.8909 + 0.0000i"],["-0.0753 + 0.0229i"],["-0.0753 - 0.0229i"],["-0.0536 + 0.0000i"]]}}
+%   data: {"dataType":"matrix","outputData":{"columns":1,"exponent":"2","name":"ctrpoles","rows":4,"type":"complex","value":[["-3.8915 + 0.0000i"],["-0.0703 + 0.0000i"],["-0.0443 + 0.0122i"],["-0.0443 - 0.0122i"]]}}
 %---
 %[output:953bf282]
-%   data: {"dataType":"textualVariable","outputData":{"name":"Nbar","value":"-0.0826"}}
+%   data: {"dataType":"textualVariable","outputData":{"name":"Nbar","value":"-0.0370"}}
 %---
 %[output:7839b6ac]
 %   data: {"dataType":"text","outputData":{"text":"Design saved to: C:\\Users\\u0130154\\MATLAB\\projects\\digtwin_labo\\data\\FSFB_torque_design.mat\n","truncated":false}}

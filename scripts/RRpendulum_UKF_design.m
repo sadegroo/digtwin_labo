@@ -119,9 +119,10 @@ fprintf('Q_ukf =\n'); disp(Q_ukf); %[output:75e1d56f]
 
 %%
 %[text] **UKF sigma point parameters** (Wan–Merwe scaled unscented transform)
-%[text] $\\lambda = \\alpha^2 (n\_x + \\kappa) - n\_x$
+%[text] $\\lambda = \\alpha^2 (n\_x + \\kappa) - n\_x$. With $\\alpha = 0.5$, $(n\_x + \\lambda) = 1$
+%[text] so $P$ is not scaled — avoids extreme numerical conditioning issues.
 
-alpha = 1e-3;     % spread of sigma points around mean
+alpha = 0.5;      % spread of sigma points (gives (nx+lambda)=1, no P scaling)
 beta  = 2;        % optimal for Gaussian distributions
 kappa = 0;        % secondary scaling parameter
 
@@ -148,13 +149,13 @@ fprintf('Wm(i) = Wc(i) = %.6e  (i = 1..%d)\n', Wm(2), n_sigma-1); %[output:0b432
 
 %%
 %[text] **Initial state estimate and covariance**
-%[text] Position initialized from encoder reading (uncertainty $\\approx$ quantization noise),
-%[text] velocity unknown ($\\sigma\_v = 1$ rad/s).
+%[text] Large initial uncertainty to tolerate IC mismatch between UKF and plant.
+%[text] Position $\\sigma \\approx 1$ rad ($57\\degree $), velocity $\\sigma \\approx 3.2$ rad/s.
 
 x0_ukf = params.ic.z0;
 
-% Position uncertainty ~ encoder quantization, velocity unknown
-P0 = diag([R_q1, 1, R_q2, 1]);
+% Generous initial uncertainty (robust to large IC mismatch)
+P0 = diag([1, 10, 1, 10]);
 
 fprintf('\n--- Initial conditions ---\n'); %[output:2db0e655]
 fprintf('x0 = [%.4f; %.4f; %.4f; %.4f]\n', x0_ukf); %[output:1efbc074]
@@ -318,19 +319,19 @@ end
 %   data: {"dataType":"text","outputData":{"text":"\n--- UKF sigma point parameters ---\n","truncated":false}}
 %---
 %[output:81e6dd72]
-%   data: {"dataType":"text","outputData":{"text":"alpha = 1.0e-03, beta = 2, kappa = 0\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"alpha = 5.0e-01, beta = 2, kappa = 0\n","truncated":false}}
 %---
 %[output:7937f451]
-%   data: {"dataType":"text","outputData":{"text":"lambda = -3.999996\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"lambda = -3.000000\n","truncated":false}}
 %---
 %[output:4bfb4daf]
 %   data: {"dataType":"text","outputData":{"text":"n_sigma = 9\n","truncated":false}}
 %---
 %[output:4ab062d0]
-%   data: {"dataType":"text","outputData":{"text":"Wm(0) = -9.999990e+05, Wc(0) = -999995.999972\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"Wm(0) = -3.000000e+00, Wc(0) = -0.250000\n","truncated":false}}
 %---
 %[output:0b432afa]
-%   data: {"dataType":"text","outputData":{"text":"Wm(i) = Wc(i) = 1.250000e+05  (i = 1..8)\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"Wm(i) = Wc(i) = 5.000000e-01  (i = 1..8)\n","truncated":false}}
 %---
 %[output:2db0e655]
 %   data: {"dataType":"text","outputData":{"text":"\n--- Initial conditions ---\n","truncated":false}}
@@ -339,7 +340,7 @@ end
 %   data: {"dataType":"text","outputData":{"text":"x0 = [0.0000; 0.0000; 3.1916; 0.0000]\n","truncated":false}}
 %---
 %[output:940b587f]
-%   data: {"dataType":"text","outputData":{"text":"P0 = diag([4.90e-08, 1.00, 5.71e-07, 1.00])\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"P0 = diag([1.00e+00, 10.00, 1.00e+00, 10.00])\n","truncated":false}}
 %---
 %[output:1af6c437]
 %   data: {"dataType":"text","outputData":{"text":"\n--- Sanity check ---\n","truncated":false}}
@@ -357,13 +358,13 @@ end
 %   data: {"dataType":"text","outputData":{"text":"Sigma points propagated through f_dt\n","truncated":false}}
 %---
 %[output:4dbf0391]
-%   data: {"dataType":"text","outputData":{"text":"Predicted mean:   [0.000014; 0.028403; 3.191602; 0.018918]\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"Predicted mean:   [-0.000001; -0.001148; 3.191593; 0.000906]\n","truncated":false}}
 %---
 %[output:33226ad8]
-%   data: {"dataType":"text","outputData":{"text":"Predicted P diag: [1.05e-06, 9.94e-01, 1.57e-06, 1.00e+00]\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"Predicted P diag: [1.00e+00, 9.94e+00, 1.00e+00, 1.00e+01]\n","truncated":false}}
 %---
 %[output:90eec144]
-%   data: {"dataType":"text","outputData":{"text":"UKF gain K (at x0):\n    0.9552   -0.0000\n  909.0689   -0.0472\n   -0.0002    0.7334\n   -1.4306  466.7175\n\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"UKF gain K (at x0):\n    1.0000    0.0000\n    0.0100    0.0106\n    0.0000    1.0000\n   -0.0000    0.0460\n\n","truncated":false}}
 %---
 %[output:5a546010]
 %   data: {"dataType":"text","outputData":{"text":"All checks passed.\n","truncated":false}}

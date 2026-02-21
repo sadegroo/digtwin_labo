@@ -30,9 +30,16 @@ function [x_hat_new, P_new] = ukf_observer_step(x_hat, P, u, y, ...
 
     % --- Generate sigma points ---
     P_scaled = (nx + lambda_ukf) * P;
-    % Force symmetry to avoid numerical issues in chol
-    P_scaled = 0.5 * (P_scaled + P_scaled');
-    P_sqrt = chol(P_scaled, 'lower');
+    P_scaled = 0.5 * (P_scaled + P_scaled');  % enforce symmetry
+    [P_sqrt, chol_flag] = chol(P_scaled, 'lower');
+    if chol_flag ~= 0
+        % Repair: clamp eigenvalues to a small positive floor
+        [V, D] = eig(P_scaled, 'vector');
+        D = max(D, 1e-12);
+        P_scaled = V * diag(D) * V';
+        P_scaled = 0.5 * (P_scaled + P_scaled');
+        P_sqrt = chol(P_scaled, 'lower');
+    end
 
     X_sigma = zeros(nx, n_sigma);
     X_sigma(:, 1) = x_hat;
@@ -74,10 +81,17 @@ function [x_hat_new, P_new] = ukf_observer_step(x_hat, P, u, y, ...
     % Kalman gain
     K = Pxy / S;
 
-    % State and covariance update
+    % State and covariance update (Joseph form — guaranteed PSD)
     x_hat_new = x_pred + K * (y - y_pred);
-    P_new = P_pred - K * S * K';
+    IKC = eye(nx) - K * C_meas;
+    P_new = IKC * P_pred * IKC' + K * R * K';
     P_new = 0.5 * (P_new + P_new');  % enforce symmetry
+
+    % Final safety net: clamp minimum eigenvalue
+    min_eig = min(eig(P_new));
+    if min_eig < 1e-12
+        P_new = P_new + (1e-12 - min_eig) * eye(nx);
+    end
 end
 
 %% --- Local functions ---

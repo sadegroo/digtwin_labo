@@ -29,17 +29,25 @@ function [x_hat_new, P_new] = ukf_observer_step(x_hat, P, u, y, ...
     ny = 2;
     n_sigma = 9;  % 2*nx + 1
 
+    % --- NaN/Inf firewall: reset rather than propagate garbage ---
+    if any(~isfinite(x_hat(:))) || any(~isfinite(P(:)))
+        x_hat_new = [0; 0; pi; 0];   % pendulum hanging down (safe)
+        P_new = Q * 1e3;
+        return;
+    end
+
     % --- Generate sigma points ---
     P_scaled = (nx + lambda_ukf) * P;
     P_scaled = 0.5 * (P_scaled + P_scaled');  % enforce symmetry
     [P_sqrt, chol_flag] = chol(P_scaled, 'lower');
     if chol_flag ~= 0
-        % Repair: clamp eigenvalues to a small positive floor
-        [V, D] = eig(P_scaled, 'vector');
-        D = max(D, 1e-12);
-        P_scaled = real(V * diag(D) * V');
-        P_scaled = 0.5 * (P_scaled + P_scaled');
-        P_sqrt = chol(P_scaled, 'lower');
+        % Repair: add diagonal loading and retry
+        P_scaled = P_scaled + 1e-8 * eye(nx);
+        [P_sqrt, chol_flag2] = chol(P_scaled, 'lower');
+        if chol_flag2 ~= 0
+            % Last resort: use scaled identity
+            P_sqrt = sqrt(1e-6) * eye(nx);
+        end
     end
 
     X_sigma = zeros(nx, n_sigma);
@@ -88,11 +96,21 @@ function [x_hat_new, P_new] = ukf_observer_step(x_hat, P, u, y, ...
     P_new = IKC * P_pred * IKC' + K * R * K';
     P_new = 0.5 * (P_new + P_new');  % enforce symmetry
 
-    % Final safety net: clamp minimum eigenvalue
-    min_eig = min(real(eig(P_new)));
-    if min_eig < 1e-12
-        P_new = P_new + (1e-12 - min_eig) * eye(nx);
+    % --- Covariance bounds ---
+    P_floor = 1e-10;
+    P_ceil  = [40; 1e4; 40; 1e4];  % [pos; vel; pos; vel]
+    for i = 1:nx
+        if P_new(i,i) < P_floor
+            P_new(i,i) = P_floor;
+        elseif P_new(i,i) > P_ceil(i)
+            P_new(i,i) = P_ceil(i);
+        end
     end
+
+    % --- Velocity clamping ---
+    v_max = 100;  % rad/s — generous physical bound
+    x_hat_new(2) = max(-v_max, min(v_max, x_hat_new(2)));
+    x_hat_new(4) = max(-v_max, min(v_max, x_hat_new(4)));
 end
 
 %% --- Local functions ---

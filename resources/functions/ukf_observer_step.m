@@ -1,32 +1,33 @@
 function [x_hat_new, P_new] = ukf_observer_step(x_hat, P, u, y, ...
-    Q, R, Wm, Wc, lambda_ukf, C_meas, Ts, nx)
+    Q, R, Wm, Wc, lambda_ukf, C_meas, Ts)
 %UKF_OBSERVER_STEP  One predict+update cycle of the Unscented Kalman Filter.
 %
 %   [x_hat_new, P_new] = ukf_observer_step(x_hat, P, u, y, ...
-%       Q, R, Wm, Wc, lambda_ukf, C_meas, Ts, nx)
+%       Q, R, Wm, Wc, lambda_ukf, C_meas, Ts)
 %
 %   Inputs:
-%       x_hat       (nx x 1)  current state estimate (absolute coordinates)
-%       P           (nx x nx) current estimation error covariance
+%       x_hat       (4 x 1)  current state estimate (absolute coordinates)
+%       P           (4 x 4)  current estimation error covariance
 %       u           (scalar)  control input (torque tau_1)
-%       y           (ny x 1)  measurement vector (absolute coordinates)
-%       Q           (nx x nx) process noise covariance
-%       R           (ny x ny) measurement noise covariance
-%       Wm          (2*nx+1 x 1) sigma point weights for mean
-%       Wc          (2*nx+1 x 1) sigma point weights for covariance
+%       y           (2 x 1)  measurement vector (absolute coordinates)
+%       Q           (4 x 4)  process noise covariance
+%       R           (2 x 2)  measurement noise covariance
+%       Wm          (9 x 1)  sigma point weights for mean
+%       Wc          (9 x 1)  sigma point weights for covariance
 %       lambda_ukf  (scalar)  sigma point scaling parameter
-%       C_meas      (ny x nx) measurement matrix (y = C*x)
+%       C_meas      (2 x 4)  measurement matrix (y = C*x)
 %       Ts          (scalar)  sample time [s]
-%       nx          (scalar)  number of states
 %
 %   Outputs:
-%       x_hat_new   (nx x 1)  updated state estimate
-%       P_new       (nx x nx) updated covariance
+%       x_hat_new   (4 x 1)  updated state estimate
+%       P_new       (4 x 4)  updated covariance
 %
+%   State: z = [q1; v1; q2; v2] (nx=4, ny=2, n_sigma=9).
 %   Calls RRpendulum_dynamics_ct (must be on the MATLAB path).
 
-    ny = size(C_meas, 1);
-    n_sigma = 2 * nx + 1;
+    nx = 4;
+    ny = 2;
+    n_sigma = 9;  % 2*nx + 1
 
     % --- Generate sigma points ---
     P_scaled = (nx + lambda_ukf) * P;
@@ -36,7 +37,7 @@ function [x_hat_new, P_new] = ukf_observer_step(x_hat, P, u, y, ...
         % Repair: clamp eigenvalues to a small positive floor
         [V, D] = eig(P_scaled, 'vector');
         D = max(D, 1e-12);
-        P_scaled = V * diag(D) * V';
+        P_scaled = real(V * diag(D) * V');
         P_scaled = 0.5 * (P_scaled + P_scaled');
         P_sqrt = chol(P_scaled, 'lower');
     end
@@ -88,7 +89,7 @@ function [x_hat_new, P_new] = ukf_observer_step(x_hat, P, u, y, ...
     P_new = 0.5 * (P_new + P_new');  % enforce symmetry
 
     % Final safety net: clamp minimum eigenvalue
-    min_eig = min(eig(P_new));
+    min_eig = min(real(eig(P_new)));
     if min_eig < 1e-12
         P_new = P_new + (1e-12 - min_eig) * eye(nx);
     end

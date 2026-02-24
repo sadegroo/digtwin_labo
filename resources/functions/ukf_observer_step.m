@@ -31,7 +31,7 @@ function [x_hat_new, P_new] = ukf_observer_step(x_hat, P, u, y, ...
 
     % --- NaN/Inf firewall: reset rather than propagate garbage ---
     if any(~isfinite(x_hat(:))) || any(~isfinite(P(:)))
-        x_hat_new = [0; 0; pi; 0];   % pendulum hanging down (safe)
+        x_hat_new = [0; 0; 0; 0];   % pendulum hanging down (safe)
         P_new = Q * 1e3;
         return;
     end

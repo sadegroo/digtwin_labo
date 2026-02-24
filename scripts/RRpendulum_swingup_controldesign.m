@@ -101,8 +101,8 @@ E0 = 0;  % target energy: upright position
 %[text] $q\_2 = \\pi$. It can tolerate deviations up to roughly 20-30 degrees.
 %[text] We also require the energy to be close to the target before switching.
 
-q2_catch_threshold = deg2rad(10);  % ±10° from upright
-E_catch_threshold = 0.2 * m * g * l;  % 30% of mgl
+q2_catch_threshold = deg2rad(15);  % ±15° from upright (min residual oscillation ~13°)
+E_catch_threshold = 0.3 * m * g * l;  % 30% of mgl
 
 fprintf('Catch region: |q2 - pi| < %.1f° and |E| < %.4f J\n', ... %[output:group:1b57a55c] %[output:9f62a694]
     rad2deg(q2_catch_threshold), E_catch_threshold); %[output:group:1b57a55c] %[output:9f62a694]
@@ -128,6 +128,8 @@ swingup.energy.k_swings  = k_swings;     % predicted number of swings
 % Catch/switching thresholds
 swingup.catch.q2_threshold = q2_catch_threshold;  % [rad]
 swingup.catch.E_threshold  = E_catch_threshold;   % [J]
+swingup.catch.E_latch      = 0.1 * m * g * l;    % [J] energy threshold for q1 latch
+swingup.catch.N_dwell      = 200;                 % samples |E|<E_latch before latching (0.2s at 1kHz)
 
 % Physical parameters (copied for convenience)
 swingup.params = params;
@@ -135,6 +137,11 @@ swingup.params = params;
 % FSFB controller (copied from existing design)
 swingup.fsfb.Kd   = design.controller.lqr.Kd;
 swingup.fsfb.Nbar = design.controller.Nbar;
+
+% q1 return trajectory after catch
+swingup.trajectory.max_rate    = 1.0;    % [rad/s] linear ramp rate
+% swingup.trajectory.q1_desired  = 0.0;    % [rad] final q1 setpoint (input in simulink)
+swingup.trajectory.Ts          = 1/1000; % [s] sample time
 
 % Save
 save_path = fullfile(data_dir, 'swingup_design.mat');
@@ -144,7 +151,7 @@ fprintf('Swing-up design saved to: %s\n', save_path); %[output:3da55eca]
 %[appendix]{"version":"1.0"}
 %---
 %[metadata:view]
-%   data: {"layout":"onright","rightPanelPercent":32.1}
+%   data: {"layout":"onright","rightPanelPercent":6.4}
 %---
 %[output:157bd663]
 %   data: {"dataType":"text","outputData":{"text":"alpha_max = 178.0 rad\/s²  (at min inertia 1.12e-03 kgm²)\n","truncated":false}}
@@ -159,7 +166,7 @@ fprintf('Swing-up design saved to: %s\n', save_path); %[output:3da55eca]
 %   data: {"dataType":"text","outputData":{"text":"k_e = 15000.0  (saturates at |E-E0| = mgl = 0.0313 J)\n","truncated":false}}
 %---
 %[output:9f62a694]
-%   data: {"dataType":"text","outputData":{"text":"Catch region: |q2 - pi| < 15.0° and |E| < 0.0063 J\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"Catch region: |q2 - pi| < 15.0° and |E| < 0.0094 J\n","truncated":false}}
 %---
 %[output:3da55eca]
 %   data: {"dataType":"text","outputData":{"text":"Swing-up design saved to: C:\\Users\\u0130154\\MATLAB\\projects\\digtwin_labo\\data\\swingup_design.mat\n","truncated":false}}

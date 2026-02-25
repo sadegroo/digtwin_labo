@@ -23,21 +23,21 @@ load(fullfile(data_dir, 'RRpendulum_params_BLDC.mat'), 'params');
 %%
 %[text] **Unpack parameters** from the hierarchical struct.
 
-% Mechanism
-m   = params.mechanism.m;
-l   = params.mechanism.l;
-r   = params.mechanism.r;
-g   = params.mechanism.g;
-b1  = params.mechanism.b1;
-b2  = params.mechanism.b2;
-Iz1 = params.mechanism.Iz_1;
+% mech
+m   = params.mech.m;
+l   = params.mech.l;
+r   = params.mech.r;
+g   = params.mech.g;
+b1  = params.mech.b1;
+b2  = params.mech.b2;
+Iz1 = params.mech.Iz_1;
 
 % Sensing
-q1_cpt = params.sensing.q1_cpt;
-q2_cpt = params.sensing.q2_cpt;
+q1_cpt = params.sens.q1_cpt;
+q2_cpt = params.sens.q2_cpt;
 
 % Actuation
-u_sat = params.actuation.u_sat;
+u_sat = params.act.u_sat;
 
 % Sample time
 Ts = 1/1000;  % [s] (1 kHz, matches hardware interface)
@@ -63,7 +63,7 @@ matlabFunction(f_num_sym, ...
     'Vars', {x_sym, u_sym}, ...
     'Outputs', {'xdot'}, ...
     'Comments', 'Continuous-time dynamics for RR pendulum (auto-generated).');
-fprintf('Dynamics function generated: %s\n', f_path); %[output:531d6ab6]
+fprintf('Dynamics function generated: %s\n', f_path); %[output:4db75250]
 
 % Function handles for use in this script
 f_ct = @(x, u) RRpendulum_dynamics_ct(x, u);
@@ -90,12 +90,12 @@ R_q1 = pi^2 / (3 * q1_cpt^2);
 R_q2 = pi^2 / (3 * q2_cpt^2);
 R = diag([R_q1, R_q2]);
 
-fprintf('\n--- Sensor noise covariance (encoder quantization) ---\n'); %[output:4b39aad6]
-fprintf('Joint 1 (N=%d): sigma_q1 = %.4e rad  (%.4e deg)\n', ... %[output:group:6a87b5f5] %[output:0f624d8c]
-    q1_cpt, sqrt(R_q1), rad2deg(sqrt(R_q1))); %[output:group:6a87b5f5] %[output:0f624d8c]
-fprintf('Joint 2 (N=%d): sigma_q2 = %.4e rad  (%.4e deg)\n', ... %[output:group:3a4e1aed] %[output:66e12da5]
-    q2_cpt, sqrt(R_q2), rad2deg(sqrt(R_q2))); %[output:group:3a4e1aed] %[output:66e12da5]
-fprintf('R = diag([%.4e, %.4e])\n', R_q1, R_q2); %[output:6c5750d5]
+fprintf('\n--- Sensor noise covariance (encoder quantization) ---\n'); %[output:39b5375a]
+fprintf('Joint 1 (N=%d): sigma_q1 = %.4e rad  (%.4e deg)\n', ... %[output:group:68ded082] %[output:145aea91]
+    q1_cpt, sqrt(R_q1), rad2deg(sqrt(R_q1))); %[output:group:68ded082] %[output:145aea91]
+fprintf('Joint 2 (N=%d): sigma_q2 = %.4e rad  (%.4e deg)\n', ... %[output:group:3ab16107] %[output:1261973d]
+    q2_cpt, sqrt(R_q2), rad2deg(sqrt(R_q2))); %[output:group:3ab16107] %[output:1261973d]
+fprintf('R = diag([%.4e, %.4e])\n', R_q1, R_q2); %[output:2cf392b5]
 
 %%
 %[text] **Process noise covariance** (tuning parameter)
@@ -113,9 +113,9 @@ qa2 = 50;    % [rad/s^2] joint 2 acceleration noise std
 Gamma = [Ts^2/2; Ts];
 Q_ukf = blkdiag(qa1^2 * (Gamma * Gamma'), qa2^2 * (Gamma * Gamma'));
 
-fprintf('\n--- Process noise covariance ---\n'); %[output:4db35143]
-fprintf('Acceleration noise std: qa1 = %.1f rad/s^2, qa2 = %.1f rad/s^2\n', qa1, qa2); %[output:46292070]
-fprintf('Q_ukf =\n'); disp(Q_ukf); %[output:75e1d56f]
+fprintf('\n--- Process noise covariance ---\n'); %[output:0a94c65a]
+fprintf('Acceleration noise std: qa1 = %.1f rad/s^2, qa2 = %.1f rad/s^2\n', qa1, qa2); %[output:3883ea47]
+fprintf('Q_ukf =\n'); disp(Q_ukf); %[output:030323af]
 
 %%
 %[text] **UKF sigma point parameters** (Wan–Merwe scaled unscented transform)
@@ -140,12 +140,12 @@ for i = 2:n_sigma
     Wc(i) = 1 / (2 * (nx + lambda_ukf));
 end
 
-fprintf('\n--- UKF sigma point parameters ---\n'); %[output:33a1141f]
-fprintf('alpha = %.1e, beta = %d, kappa = %d\n', alpha, beta, kappa); %[output:81e6dd72]
-fprintf('lambda = %.6f\n', lambda_ukf); %[output:7937f451]
-fprintf('n_sigma = %d\n', n_sigma); %[output:4bfb4daf]
-fprintf('Wm(0) = %.6e, Wc(0) = %.6f\n', Wm(1), Wc(1)); %[output:4ab062d0]
-fprintf('Wm(i) = Wc(i) = %.6e  (i = 1..%d)\n', Wm(2), n_sigma-1); %[output:0b432afa]
+fprintf('\n--- UKF sigma point parameters ---\n'); %[output:54240de5]
+fprintf('alpha = %.1e, beta = %d, kappa = %d\n', alpha, beta, kappa); %[output:34e1b80c]
+fprintf('lambda = %.6f\n', lambda_ukf); %[output:18e9cc94]
+fprintf('n_sigma = %d\n', n_sigma); %[output:48511f29]
+fprintf('Wm(0) = %.6e, Wc(0) = %.6f\n', Wm(1), Wc(1)); %[output:24308a69]
+fprintf('Wm(i) = Wc(i) = %.6e  (i = 1..%d)\n', Wm(2), n_sigma-1); %[output:0492b616]
 
 %%
 %[text] **Initial state estimate and covariance**
@@ -157,23 +157,23 @@ x0_ukf = params.ic.z0;
 % Generous initial uncertainty (robust to large IC mismatch)
 P0 = diag([1, 10, 1, 10]);
 
-fprintf('\n--- Initial conditions ---\n'); %[output:2db0e655]
-fprintf('x0 = [%.4f; %.4f; %.4f; %.4f]\n', x0_ukf); %[output:1efbc074]
-fprintf('P0 = diag([%.2e, %.2f, %.2e, %.2f])\n', P0(1,1), P0(2,2), P0(3,3), P0(4,4)); %[output:940b587f]
+fprintf('\n--- Initial conditions ---\n'); %[output:657d3b7e]
+fprintf('x0 = [%.4f; %.4f; %.4f; %.4f]\n', x0_ukf); %[output:8f8a6b69]
+fprintf('P0 = diag([%.2e, %.2f, %.2e, %.2f])\n', P0(1,1), P0(2,2), P0(3,3), P0(4,4)); %[output:95d08de6]
 
 %%
 %[text] **Sanity check**: one full predict + update cycle at the initial condition to verify
 %[text] that all function handles, sigma point generation, and matrix dimensions are correct.
 
-fprintf('\n--- Sanity check ---\n'); %[output:1af6c437]
+fprintf('\n--- Sanity check ---\n'); %[output:609fb420]
 
 % Test continuous dynamics at initial condition with zero input
 xdot_test = f_ct(x0_ukf, 0);
-fprintf('f_ct(x0, 0) = [%.4f; %.4f; %.4f; %.4f]\n', xdot_test); %[output:66980da6]
+fprintf('f_ct(x0, 0) = [%.4f; %.4f; %.4f; %.4f]\n', xdot_test); %[output:9209f0df]
 
 % One RK4 step
 x1_test = f_dt(x0_ukf, 0);
-fprintf('f_dt(x0, 0) = [%.6f; %.6f; %.6f; %.6f]  (one Ts step)\n', x1_test); %[output:03e46943]
+fprintf('f_dt(x0, 0) = [%.6f; %.6f; %.6f; %.6f]  (one Ts step)\n', x1_test); %[output:7e36e80f]
 
 % Sigma point generation
 P_sqrt = chol((nx + lambda_ukf) * P0, 'lower');
@@ -183,14 +183,14 @@ for i = 1:nx
     X_sigma(:, 1+i)    = x0_ukf + P_sqrt(:, i);
     X_sigma(:, 1+nx+i) = x0_ukf - P_sqrt(:, i);
 end
-fprintf('Sigma points generated: %d x %d matrix\n', size(X_sigma)); %[output:75ff2bc5]
+fprintf('Sigma points generated: %d x %d matrix\n', size(X_sigma)); %[output:746e15e7]
 
 % Propagate all sigma points
 X_pred = zeros(nx, n_sigma);
 for i = 1:n_sigma
     X_pred(:, i) = f_dt(X_sigma(:, i), 0);
 end
-fprintf('Sigma points propagated through f_dt\n'); %[output:54a30534]
+fprintf('Sigma points propagated through f_dt\n'); %[output:07a57ef1]
 
 % Predicted mean and covariance
 x_pred = X_pred * Wm;
@@ -199,8 +199,8 @@ for i = 1:n_sigma
     dx = X_pred(:, i) - x_pred;
     P_pred = P_pred + Wc(i) * (dx * dx');
 end
-fprintf('Predicted mean:   [%.6f; %.6f; %.6f; %.6f]\n', x_pred); %[output:4dbf0391]
-fprintf('Predicted P diag: [%.2e, %.2e, %.2e, %.2e]\n', diag(P_pred)); %[output:33226ad8]
+fprintf('Predicted mean:   [%.6f; %.6f; %.6f; %.6f]\n', x_pred); %[output:94aca49a]
+fprintf('Predicted P diag: [%.2e, %.2e, %.2e, %.2e]\n', diag(P_pred)); %[output:92f4602a]
 
 % Measurement update
 Y_pred = zeros(ny, n_sigma);
@@ -217,15 +217,15 @@ for i = 1:n_sigma
     Pxy = Pxy + Wc(i) * ((X_pred(:, i) - x_pred) * dy');
 end
 K_ukf = Pxy / S;
-fprintf('UKF gain K (at x0):\n'); disp(K_ukf); %[output:90eec144]
-fprintf('All checks passed.\n'); %[output:5a546010]
+fprintf('UKF gain K (at x0):\n'); disp(K_ukf); %[output:09f614aa]
+fprintf('All checks passed.\n'); %[output:1098b2c6]
 
 %%
 %[text] **Save UKF design** to struct and .mat file
 
 ukf = struct();
 
-% Metadata
+% Metadata (traceability only — strings, timestamps, descriptions)
 ukf.meta.created        = datetime('now');
 ukf.meta.matlab_version = version;
 ukf.meta.source_script  = mfilename('fullpath');
@@ -233,48 +233,40 @@ ukf.meta.description    = 'UKF observer design for RR inverted pendulum';
 ukf.meta.state          = 'z = [q1; v1; q2; v2]';
 ukf.meta.input          = 'u = tau_1';
 ukf.meta.output         = 'y = [q1; q2]';
+ukf.meta.noise.R_derivation   = 'Encoder quantization: var = pi^2/(3*N^2)';
+ukf.meta.dynamics.f_ct_file   = 'RRpendulum_dynamics_ct';
+ukf.meta.dynamics.integration = 'RK4';
 
-% Dimensions
-ukf.dims.nx = nx;
-ukf.dims.ny = ny;
-ukf.dims.nu = nu;
+% Numerical parameters (codegen-safe: doubles only)
+ukf.par.dims.nx = nx;
+ukf.par.dims.ny = ny;
+ukf.par.dims.nu = nu;
 
-% Timing
-ukf.Ts = Ts;
+ukf.par.Ts = Ts;
 
-% Noise covariances
-ukf.noise.R   = R;
-ukf.noise.R_q1 = R_q1;
-ukf.noise.R_q2 = R_q2;
-ukf.noise.R_derivation = 'Encoder quantization: var = pi^2/(3*N^2)';
-ukf.noise.Q   = Q_ukf;
-ukf.noise.qa1 = qa1;
-ukf.noise.qa2 = qa2;
+ukf.par.noise.R    = R;
+ukf.par.noise.R_q1 = R_q1;
+ukf.par.noise.R_q2 = R_q2;
+ukf.par.noise.Q    = Q_ukf;
+ukf.par.noise.qa1  = qa1;
+ukf.par.noise.qa2  = qa2;
 
-% Sigma point parameters
-ukf.sigma.alpha  = alpha;
-ukf.sigma.beta   = beta;
-ukf.sigma.kappa  = kappa;
-ukf.sigma.lambda = lambda_ukf;
-ukf.sigma.Wm     = Wm;
-ukf.sigma.Wc     = Wc;
+ukf.par.sigma.alpha  = alpha;
+ukf.par.sigma.beta   = beta;
+ukf.par.sigma.kappa  = kappa;
+ukf.par.sigma.lambda = lambda_ukf;
+ukf.par.sigma.Wm     = Wm;
+ukf.par.sigma.Wc     = Wc;
 
-% Measurement model
-ukf.measurement.C = C_meas;
+ukf.par.measurement.C = C_meas;
 
-% Initial conditions
-ukf.ic.x0 = x0_ukf;
-ukf.ic.P0 = P0;
-
-% Dynamics reference
-ukf.dynamics.f_ct_file   = 'RRpendulum_dynamics_ct';
-ukf.dynamics.Ts          = Ts;
-ukf.dynamics.integration = 'RK4';
+ukf.par.ic.x0 = x0_ukf;
+ukf.par.ic.P0 = P0;
 
 % Save
 save_path = fullfile(data_dir, 'UKF_design.mat');
 save(save_path, 'ukf');
-fprintf('\nUKF design saved to: %s\n', save_path); %[output:851c0bb9]
+fprintf('\nUKF design saved to: %s\n', save_path); %[output:13503e69]
 
 %% --- Local functions ---
 function x_next = rk4_step(f, x, u, dt)
@@ -291,84 +283,84 @@ end
 %[metadata:view]
 %   data: {"layout":"onright","rightPanelPercent":31.6}
 %---
-%[output:531d6ab6]
+%[output:4db75250]
 %   data: {"dataType":"text","outputData":{"text":"Dynamics function generated: C:\\Users\\u0130154\\MATLAB\\projects\\digtwin_labo\\resources\\functions\\RRpendulum_dynamics_ct.m\n","truncated":false}}
 %---
-%[output:4b39aad6]
+%[output:39b5375a]
 %   data: {"dataType":"text","outputData":{"text":"\n--- Sensor noise covariance (encoder quantization) ---\n","truncated":false}}
 %---
-%[output:0f624d8c]
+%[output:145aea91]
 %   data: {"dataType":"text","outputData":{"text":"Joint 1 (N=8192): sigma_q1 = 2.2141e-04 rad  (1.2686e-02 deg)\n","truncated":false}}
 %---
-%[output:66e12da5]
+%[output:1261973d]
 %   data: {"dataType":"text","outputData":{"text":"Joint 2 (N=2400): sigma_q2 = 7.5575e-04 rad  (4.3301e-02 deg)\n","truncated":false}}
 %---
-%[output:6c5750d5]
+%[output:2cf392b5]
 %   data: {"dataType":"text","outputData":{"text":"R = diag([4.9023e-08, 5.7116e-07])\n","truncated":false}}
 %---
-%[output:4db35143]
+%[output:0a94c65a]
 %   data: {"dataType":"text","outputData":{"text":"\n--- Process noise covariance ---\n","truncated":false}}
 %---
-%[output:46292070]
+%[output:3883ea47]
 %   data: {"dataType":"text","outputData":{"text":"Acceleration noise std: qa1 = 10.0 rad\/s^2, qa2 = 50.0 rad\/s^2\n","truncated":false}}
 %---
-%[output:75e1d56f]
+%[output:030323af]
 %   data: {"dataType":"text","outputData":{"text":"Q_ukf =\n    0.0000    0.0000         0         0\n    0.0000    0.0001         0         0\n         0         0    0.0000    0.0000\n         0         0    0.0000    0.0025\n\n","truncated":false}}
 %---
-%[output:33a1141f]
+%[output:54240de5]
 %   data: {"dataType":"text","outputData":{"text":"\n--- UKF sigma point parameters ---\n","truncated":false}}
 %---
-%[output:81e6dd72]
+%[output:34e1b80c]
 %   data: {"dataType":"text","outputData":{"text":"alpha = 5.0e-01, beta = 2, kappa = 0\n","truncated":false}}
 %---
-%[output:7937f451]
+%[output:18e9cc94]
 %   data: {"dataType":"text","outputData":{"text":"lambda = -3.000000\n","truncated":false}}
 %---
-%[output:4bfb4daf]
+%[output:48511f29]
 %   data: {"dataType":"text","outputData":{"text":"n_sigma = 9\n","truncated":false}}
 %---
-%[output:4ab062d0]
+%[output:24308a69]
 %   data: {"dataType":"text","outputData":{"text":"Wm(0) = -3.000000e+00, Wc(0) = -0.250000\n","truncated":false}}
 %---
-%[output:0b432afa]
+%[output:0492b616]
 %   data: {"dataType":"text","outputData":{"text":"Wm(i) = Wc(i) = 5.000000e-01  (i = 1..8)\n","truncated":false}}
 %---
-%[output:2db0e655]
+%[output:657d3b7e]
 %   data: {"dataType":"text","outputData":{"text":"\n--- Initial conditions ---\n","truncated":false}}
 %---
-%[output:1efbc074]
+%[output:8f8a6b69]
 %   data: {"dataType":"text","outputData":{"text":"x0 = [0.0000; 0.0000; 3.1916; 0.0000]\n","truncated":false}}
 %---
-%[output:940b587f]
+%[output:95d08de6]
 %   data: {"dataType":"text","outputData":{"text":"P0 = diag([1.00e+00, 10.00, 1.00e+00, 10.00])\n","truncated":false}}
 %---
-%[output:1af6c437]
+%[output:609fb420]
 %   data: {"dataType":"text","outputData":{"text":"\n--- Sanity check ---\n","truncated":false}}
 %---
-%[output:66980da6]
+%[output:9209f0df]
 %   data: {"dataType":"text","outputData":{"text":"f_ct(x0, 0) = [0.0000; 28.4537; 0.0000; 18.8983]\n","truncated":false}}
 %---
-%[output:03e46943]
+%[output:7e36e80f]
 %   data: {"dataType":"text","outputData":{"text":"f_dt(x0, 0) = [0.000014; 0.028406; 3.191602; 0.018870]  (one Ts step)\n","truncated":false}}
 %---
-%[output:75ff2bc5]
+%[output:746e15e7]
 %   data: {"dataType":"text","outputData":{"text":"Sigma points generated: 4 x 9 matrix\n","truncated":false}}
 %---
-%[output:54a30534]
+%[output:07a57ef1]
 %   data: {"dataType":"text","outputData":{"text":"Sigma points propagated through f_dt\n","truncated":false}}
 %---
-%[output:4dbf0391]
+%[output:94aca49a]
 %   data: {"dataType":"text","outputData":{"text":"Predicted mean:   [-0.000001; -0.001148; 3.191593; 0.000906]\n","truncated":false}}
 %---
-%[output:33226ad8]
+%[output:92f4602a]
 %   data: {"dataType":"text","outputData":{"text":"Predicted P diag: [1.00e+00, 9.94e+00, 1.00e+00, 1.00e+01]\n","truncated":false}}
 %---
-%[output:90eec144]
+%[output:09f614aa]
 %   data: {"dataType":"text","outputData":{"text":"UKF gain K (at x0):\n    1.0000    0.0000\n    0.0100    0.0106\n    0.0000    1.0000\n   -0.0000    0.0460\n\n","truncated":false}}
 %---
-%[output:5a546010]
+%[output:1098b2c6]
 %   data: {"dataType":"text","outputData":{"text":"All checks passed.\n","truncated":false}}
 %---
-%[output:851c0bb9]
+%[output:13503e69]
 %   data: {"dataType":"text","outputData":{"text":"\nUKF design saved to: C:\\Users\\u0130154\\MATLAB\\projects\\digtwin_labo\\data\\UKF_design.mat\n","truncated":false}}
 %---

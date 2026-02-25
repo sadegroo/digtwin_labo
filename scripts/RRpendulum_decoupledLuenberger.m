@@ -1,3 +1,5 @@
+%This script is not being used anymore since we use UKF now
+
 clear
 clc
 run RRpendulum_forkin_dyn_noimage.m

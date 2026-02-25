@@ -71,18 +71,7 @@ Ekin = simplify(0.5*m*transpose(q_t_dot)*(transpose(jac_m)*jac_m)*q_t_dot) ... %
 %[text] Since we modeled a point mass, there is nog contribution of rotational kinetic energy:
 Epot = m*g*o0Pm(3,1) %[output:591a9b6f]
 
-L=Ekin-Epot %Lagrangian %[output:9e4d1713]
-
-
-%[text] Helper function to calculate total pendulum energy
-Epend = simplify(0.5*m*transpose(v)*(transpose(jac_m_)*jac_m_)*v) + m*g*o0Pm_(3,1) % only care about energy in pendulum %[output:8d3f2cbf]
-f_path = fullfile(func_dir, 'PendulumEnergy.m');
-matlabFunction(Epend, ...
-    'File', f_path, ...
-    'Vars', { [q(1);v(1);q(2);v(2)],m,r,l,g}, ...
-    'Outputs', {'Epend'}, ...
-    'Comments', 'Calculate total pendumum energy (auto-generated).');
-
+L=Ekin-Epot %Lagrangian %[output:9e4d1713] %[output:8d3f2cbf]
 %[text] Euler-lagrange with friction, but without holonomic constraints. Right hand side = Qi (generalized force i)
 % generalized forces "Q", only viscous friction.
 Q = [tau_1 - b_1*q_t_dot(1);-b_2*q_t_dot(2)] %[output:7febaf4d]
@@ -207,7 +196,7 @@ fprintf('Symbolic EOM saved to: %s\n', fullfile(save_dir, 'RRpendulum_EOM.mat'))
 %[appendix]{"version":"1.0"}
 %---
 %[metadata:view]
-%   data: {"layout":"onright","rightPanelPercent":42.7}
+%   data: {"layout":"onright","rightPanelPercent":50.2}
 %---
 %[output:8a914992]
 %   data: {"dataType":"symbolic","outputData":{"name":"DH_table","value":"\\left(\\begin{array}{cccc}\n-\\frac{\\pi }{2} & 0 & 0 & q_1 \\left(t\\right)\\\\\n\\frac{\\pi }{2} & 0 & r & q_2 \\left(t\\right)\n\\end{array}\\right)"}}
@@ -246,7 +235,7 @@ fprintf('Symbolic EOM saved to: %s\n', fullfile(save_dir, 'RRpendulum_EOM.mat'))
 %   data: {"dataType":"symbolic","outputData":{"name":"L","value":"\\frac{{\\textrm{Iz}}_1 \\,{{\\left(\\frac{\\partial }{\\partial t}\\;q_1 \\left(t\\right)\\right)}}^2 }{2}+\\frac{l^2 \\,m\\,{{\\left(\\frac{\\partial }{\\partial t}\\;q_1 \\left(t\\right)\\right)}}^2 }{2}+\\frac{l^2 \\,m\\,{{\\left(\\frac{\\partial }{\\partial t}\\;q_2 \\left(t\\right)\\right)}}^2 }{2}+\\frac{m\\,r^2 \\,{{\\left(\\frac{\\partial }{\\partial t}\\;q_1 \\left(t\\right)\\right)}}^2 }{2}-\\frac{l^2 \\,m\\,{\\cos \\left(q_2 \\left(t\\right)\\right)}^2 \\,{{\\left(\\frac{\\partial }{\\partial t}\\;q_1 \\left(t\\right)\\right)}}^2 }{2}+g\\,l\\,m\\,\\cos \\left(q_2 \\left(t\\right)\\right)+l\\,m\\,r\\,\\cos \\left(q_2 \\left(t\\right)\\right)\\,\\frac{\\partial }{\\partial t}\\;q_2 \\left(t\\right)\\,\\frac{\\partial }{\\partial t}\\;q_1 \\left(t\\right)"}}
 %---
 %[output:8d3f2cbf]
-%   data: {"dataType":"symbolic","outputData":{"name":"Epend","value":"\\frac{m\\,{\\left(-l^2 \\,{v_1 }^2 \\,{\\cos \\left(q_2 \\right)}^2 +l^2 \\,{v_1 }^2 +l^2 \\,{v_2 }^2 +2\\,l\\,r\\,v_1 \\,v_2 \\,\\cos \\left(q_2 \\right)+r^2 \\,{v_1 }^2 \\right)}}{2}-g\\,l\\,m\\,\\cos \\left(q_2 \\right)"}}
+%   data: {"dataType":"symbolic","outputData":{"name":"Epend","value":"\\frac{m\\,{\\left(-l^2 \\,{v_1 }^2 \\,{\\cos \\left(q_2 \\right)}^2 +l^2 \\,{v_1 }^2 +l^2 \\,{v_2 }^2 +2\\,l\\,r\\,v_1 \\,v_2 \\,\\cos \\left(q_2 \\right)+r^2 \\,{v_1 }^2 \\right)}}{2}-g\\,l\\,m\\,{\\left(\\cos \\left(q_2 \\right)+1\\right)}"}}
 %---
 %[output:7febaf4d]
 %   data: {"dataType":"symbolic","outputData":{"name":"Q","value":"\\left(\\begin{array}{c}\n\\tau_1 -b_1 \\,\\frac{\\partial }{\\partial t}\\;q_1 \\left(t\\right)\\\\\n-b_2 \\,\\frac{\\partial }{\\partial t}\\;q_2 \\left(t\\right)\n\\end{array}\\right)"}}

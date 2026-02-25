@@ -25,25 +25,21 @@ z0 = [q1_0; v1_0; q2_0; v2_0];  % Initial state vector
 %% Save to .mat (hierarchical struct for downstream scripts)
 params = struct();
 
-params.meta.created       = datetime('now');
-params.meta.source_script = 'RRpendulum_Parameters_num_BLDC.m';
-params.meta.description   = 'Numerical parameters for RR pendulum (BLDC variant)';
-
 % Mechanism (rigid body dynamics)
-params.mechanism.m    = m_num;      % [kg] point mass
-params.mechanism.l    = l_num;      % [m] pendulum length
-params.mechanism.r    = r_num;      % [m] link 1 offset
-params.mechanism.g    = g_num;      % [m/s^2] gravitational acceleration
-params.mechanism.b1   = b1_num;     % [Nms/rad] joint 1 viscous damping
-params.mechanism.b2   = b2_num;     % [Nms/rad] joint 2 viscous damping
-params.mechanism.Iz_1 = Iz_1_num;   % [kgm^2] joint 1 rotational inertia
+params.mech.m    = m_num;      % [kg] point mass
+params.mech.l    = l_num;      % [m] pendulum length
+params.mech.r    = r_num;      % [m] link 1 offset
+params.mech.g    = g_num;      % [m/s^2] gravitational acceleration
+params.mech.b1   = b1_num;     % [Nms/rad] joint 1 viscous damping
+params.mech.b2   = b2_num;     % [Nms/rad] joint 2 viscous damping
+params.mech.Iz_1 = Iz_1_num;   % [kgm^2] joint 1 rotational inertia
 
 % Actuation
-params.actuation.u_sat = u_sat;     % [Nm] symmetric torque saturation
+params.act.u_sat = u_sat;     % [Nm] symmetric torque saturation
 
 % Sensing (encoders)
-params.sensing.q1_cpt = q1_cpt;     % [counts/turn] joint 1 encoder
-params.sensing.q2_cpt = q2_cpt;     % [counts/turn] joint 2 encoder
+params.sens.q1_cpt = q1_cpt;     % [counts/turn] joint 1 encoder
+params.sens.q2_cpt = q2_cpt;     % [counts/turn] joint 2 encoder
 
 % Initial conditions
 params.ic.q1_0 = q1_0;

@@ -41,12 +41,12 @@ Iz1_min = RRpendulum_totalIz1([0; pi], Iz_1, m, r, l);
 Iz1_max = RRpendulum_totalIz1([0; pi/2], Iz_1, m, r, l);
 
 alpha_max = u_sat / Iz1_max;
-fprintf('alpha_max = %.1f rad/s²  (at min inertia %.2e kgm²)\n', alpha_max, Iz1_max); %[output:16e2d745]
+fprintf('alpha_max = %.1f rad/s²  (at min inertia %.2e kgm²)\n', alpha_max, Iz1_max); %[output:8c7b67d4]
 
 % Equivalent linear acceleration at pendulum pivot
 u_lin_max = alpha_max * r;
 n_ratio = u_lin_max / g;
-fprintf('n = u_lin_max/g = %.3f\n', n_ratio); %[output:4439a566]
+fprintf('n = u_lin_max/g = %.3f\n', n_ratio); %[output:48c0be16]
 
 %%
 %[text] **Predicted number of swings**
@@ -76,7 +76,7 @@ elseif n_ratio > 0.241
 else
     k_swings = ceil(pi / (2*n_ratio));  % approximate
 end
-fprintf('Predicted swings needed: %d  (n = %.3f)\n', k_swings, n_ratio); %[output:131ef734]
+fprintf('Predicted swings needed: %d  (n = %.3f)\n', k_swings, n_ratio); %[output:682509ab]
 
 %%
 %[text] **Energy controller gain** $k\_e$
@@ -90,7 +90,7 @@ fprintf('Predicted swings needed: %d  (n = %.3f)\n', k_swings, n_ratio); %[outpu
 
 % k_e = alpha_max / (m * g * l);
 k_e = 20000; % manually tuned
-fprintf('k_e = %.1f  (saturates at |E-E0| = mgl = %.4f J)\n', k_e, m*g*l); %[output:31e223e1]
+fprintf('k_e = %.1f  (saturates at |E-E0| = mgl = %.4f J)\n', k_e, m*g*l); %[output:138763b4]
 
 E0 = 0;  % target energy: upright position
 
@@ -104,8 +104,8 @@ E0 = 0;  % target energy: upright position
 q2_catch_threshold = deg2rad(15);  % ±15° from upright (min residual oscillation ~13°)
 E_catch_threshold = 0.3 * m * g * l;  % 30% of mgl
 
-fprintf('Catch region: |q2 - pi| < %.1f° and |E| < %.4f J\n', ... %[output:group:16c924bb] %[output:88e8edcc]
-    rad2deg(q2_catch_threshold), E_catch_threshold); %[output:group:16c924bb] %[output:88e8edcc]
+fprintf('Catch region: |q2 - pi| < %.1f° and |E| < %.4f J\n', ... %[output:group:04dd9e98] %[output:8a0e2ca5]
+    rad2deg(q2_catch_threshold), E_catch_threshold); %[output:group:04dd9e98] %[output:8a0e2ca5]
 
 %%
 %[text] **Save swing-up design**
@@ -129,7 +129,7 @@ swingup.par.energy.k_swings  = k_swings;     % predicted number of swings
 swingup.par.catch.q2_threshold = q2_catch_threshold;  % [rad]
 swingup.par.catch.E_threshold  = E_catch_threshold;   % [J]
 swingup.par.catch.E_latch      = 0.1 * m * g * l;    % [J] energy threshold for q1 latch
-swingup.par.catch.N_dwell      = 200;                 % samples |E|<E_latch before latching (0.2s at 1kHz)
+swingup.par.catch.N_dwell      = 500;                 % samples |E|<E_latch before latching (0.5s at 1kHz)
 
 % Physical parameters (flat, codegen-safe — only what swingup_energy_controller needs)
 swingup.par.plant.m     = m;
@@ -145,34 +145,34 @@ swingup.par.fsfb.Nbar = design.par.Nbar;
 swingup.par.fsfb.Ts = design.par.Ts; % [s] sample time
 
 % q1 return trajectory after catch
-swingup.par.trajectory.max_rate    = 1.0;    % [rad/s] linear ramp rate
+swingup.par.trajectory.max_rate    = pi/2;    % [rad/s] linear ramp rate
 % swingup.trajectory.q1_desired  = 0.0;    % [rad] final q1 setpoint (input in simulink)
 
 % Save
 save_path = fullfile(data_dir, 'swingup_design.mat');
 save(save_path, 'swingup');
-fprintf('Swing-up design saved to: %s\n', save_path); %[output:3dd830a4]
+fprintf('Swing-up design saved to: %s\n', save_path); %[output:7eae741e]
 
 %[appendix]{"version":"1.0"}
 %---
 %[metadata:view]
-%   data: {"layout":"onright","rightPanelPercent":24.4}
+%   data: {"layout":"onright","rightPanelPercent":11.7}
 %---
-%[output:16e2d745]
+%[output:8c7b67d4]
 %   data: {"dataType":"text","outputData":{"text":"alpha_max = 178.0 rad\/s²  (at min inertia 1.12e-03 kgm²)\n","truncated":false}}
 %---
-%[output:4439a566]
+%[output:48c0be16]
 %   data: {"dataType":"text","outputData":{"text":"n = u_lin_max\/g = 2.740\n","truncated":false}}
 %---
-%[output:131ef734]
+%[output:682509ab]
 %   data: {"dataType":"text","outputData":{"text":"Predicted swings needed: 1  (n = 2.740)\n","truncated":false}}
 %---
-%[output:31e223e1]
+%[output:138763b4]
 %   data: {"dataType":"text","outputData":{"text":"k_e = 20000.0  (saturates at |E-E0| = mgl = 0.0313 J)\n","truncated":false}}
 %---
-%[output:88e8edcc]
+%[output:8a0e2ca5]
 %   data: {"dataType":"text","outputData":{"text":"Catch region: |q2 - pi| < 15.0° and |E| < 0.0094 J\n","truncated":false}}
 %---
-%[output:3dd830a4]
+%[output:7eae741e]
 %   data: {"dataType":"text","outputData":{"text":"Swing-up design saved to: C:\\Users\\u0130154\\MATLAB\\projects\\digtwin_labo\\data\\swingup_design.mat\n","truncated":false}}
 %---

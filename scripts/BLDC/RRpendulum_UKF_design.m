@@ -261,12 +261,17 @@ ukf.par.sigma.Wc     = Wc;
 ukf.par.measurement.C = C_meas;
 
 ukf.par.ic.x0 = x0_ukf;
-ukf.par.ic.P0 = P0;
+ukf.par.ic.P0 = P0; %[output:13503e69]
 
 % Save
-save_path = fullfile(data_dir, 'UKF_design.mat');
-save(save_path, 'ukf');
-fprintf('\nUKF design saved to: %s\n', save_path); %[output:13503e69]
+if isempty(matlab.project.rootProject)
+    openProject('C:/Users/u0130154/MATLAB/projects/digtwin_labo/digtwin_labo.prj');
+end
+prj = matlab.project.rootProject;
+save_dir = fullfile(prj.RootFolder, 'data');
+if ~isfolder(save_dir), mkdir(save_dir); end
+save(fullfile(save_dir, 'UKF_design.mat'), 'ukf');
+fprintf('Parameters saved to: %s\n', fullfile(save_dir, 'UKF_design.mat'));
 
 %% --- Local functions ---
 function x_next = rk4_step(f, x, u, dt)

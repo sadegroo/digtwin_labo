@@ -1,0 +1,5 @@
+run RRpendulum_forkin_dyn_noimage.m
+run RRpendulum_Parameters_num_BLDC.m
+run RRpendulum_FSFB_controldesign_torque.m
+run RRpendulum_UKF_design.m
+run RRpendulum_swingup_controldesign.m

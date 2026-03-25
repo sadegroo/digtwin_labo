@@ -187,6 +187,9 @@ EOM.multibody.B_damp = B_damp;
 EOM.multibody.B_tau  = B_tau;
 
 % --- Save ---
+if isempty(matlab.project.rootProject)
+    openProject('C:/Users/u0130154/MATLAB/projects/digtwin_labo/digtwin_labo.prj');
+end
 prj = matlab.project.rootProject;
 save_dir = fullfile(prj.RootFolder, 'data');
 if ~isfolder(save_dir), mkdir(save_dir); end
@@ -196,7 +199,7 @@ fprintf('Symbolic EOM saved to: %s\n', fullfile(save_dir, 'RRpendulum_EOM.mat'))
 %[appendix]{"version":"1.0"}
 %---
 %[metadata:view]
-%   data: {"layout":"onright","rightPanelPercent":50.2}
+%   data: {"layout":"onright","rightPanelPercent":35.5}
 %---
 %[output:8a914992]
 %   data: {"dataType":"symbolic","outputData":{"name":"DH_table","value":"\\left(\\begin{array}{cccc}\n-\\frac{\\pi }{2} & 0 & 0 & q_1 \\left(t\\right)\\\\\n\\frac{\\pi }{2} & 0 & r & q_2 \\left(t\\right)\n\\end{array}\\right)"}}

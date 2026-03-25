@@ -146,12 +146,17 @@ swingup.par.fsfb.Ts = design.par.Ts; % [s] sample time
 
 % q1 return trajectory after catch
 swingup.par.trajectory.max_rate    = pi/2;    % [rad/s] linear ramp rate
-% swingup.trajectory.q1_desired  = 0.0;    % [rad] final q1 setpoint (input in simulink)
+% swingup.trajectory.q1_desired  = 0.0;    % [rad] final q1 setpoint (input in simulink) %[output:7eae741e]
 
 % Save
-save_path = fullfile(data_dir, 'swingup_design.mat');
-save(save_path, 'swingup');
-fprintf('Swing-up design saved to: %s\n', save_path); %[output:7eae741e]
+if isempty(matlab.project.rootProject)
+    openProject('C:/Users/u0130154/MATLAB/projects/digtwin_labo/digtwin_labo.prj');
+end
+prj = matlab.project.rootProject;
+save_dir = fullfile(prj.RootFolder, 'data');
+if ~isfolder(save_dir), mkdir(save_dir); end
+save(fullfile(save_dir, 'swingup_design.mat'), 'swingup');
+fprintf('Parameters saved to: %s\n', fullfile(save_dir, 'swingup_design.mat'));
 
 %[appendix]{"version":"1.0"}
 %---

@@ -340,25 +340,25 @@ fprintf('\nSaved drive parameters to: %s\n', save_path); %[output:25603846]
 %[text] - Armature inductance: `drive.par.motor.L\_H` \[H\]
 %[text] - Back-EMF constant: `drive.par.motor.Ke\_Vpradps` \[V/(rad/s)\]
 %[text] - Torque constant: `drive.par.motor.Kt\_NmpA` \[Nm/A\] \
-%[text]
+%[text] 
 %[text] **Torque (current) control loop:**
 %[text] - Discrete PI block, sample time = `drive.par.torque\_pi.Ts\_s`
 %[text] - P = `drive.par.torque\_pi.Kp\_ohm`, I = `drive.par.torque\_pi.Ki\_ohm\_ps`
 %[text] - Input: current error \[A\] = Iq\_ref − Iq\_meas
 %[text] - Output: voltage command \[V\] applied to motor terminals
 %[text] - Saturation: ± `drive.par.torque\_pi.V\_max\_V` \
-%[text]
+%[text] 
 %[text] **Speed control loop:**
 %[text] - Discrete PI block, sample time = `drive.par.speed\_pi.Ts\_s`
 %[text] - P = `drive.par.speed\_pi.Kp\_Apradps`, I = `drive.par.speed\_pi.Ki\_Apradps2`
 %[text] - Input: speed error \[rad/s\] = w\_ref − w\_meas
 %[text] - Output: Iq reference \[A\]
 %[text] - Saturation: ± `drive.par.speed\_pi.I\_max\_A` \
-%[text]
+%[text] 
 %[text] **Measurement filters:**
 %[text] - Iq feedback: `drive.par.filters.iq\_lpf.alpha` at `drive.par.filters.iq\_lpf.Ts\_s`
 %[text] - Speed feedback: `drive.par.filters.motor\_vel.alpha` at `drive.par.filters.motor\_vel.Ts\_s` \
-%[text]
+%[text] 
 %[text] **PWM average model:**
 %[text] - If using a PWM average model instead of switching, the voltage \
 %[text]   applied to the motor is: $V\_{motor} = \\frac{duty}{PWM\_{period}} \\times V\_{bus}$
@@ -403,7 +403,7 @@ end
 %[appendix]{"version":"1.0"}
 %---
 %[metadata:view]
-%   data: {"layout":"onright","rightPanelPercent":5.6}
+%   data: {"layout":"onright","rightPanelPercent":53.4}
 %---
 %[output:3e3d4bfa]
 %   data: {"dataType":"text","outputData":{"text":"Motor: Rs=0.2300 Ohm, Ls=1.50e-04 H, Ke=0.0234 V\/(rad\/s), Kt=0.0234 Nm\/A\n","truncated":false}}

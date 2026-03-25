@@ -1,3 +1,5 @@
+% this is a copy of RRpendulum_FSFB_controldesign_torque.m, that still
+% needs to be adapted for acceleation control if required in the future
 clear
 clc
 
@@ -133,11 +135,15 @@ design.par.lqr.K  = K;                    % continuous LQR gain
 design.par.lqr.Kd = Kd;                   % discrete LQR gain (lqrd)
 design.par.Nbar    = Nbar;                 % feedforward gain for q1 tracking
 %%
-
-% --- Save ---
-save_path = fullfile('C:\Users\u0130154\MATLAB\projects\digtwin_labo\data', 'FSFB_torque_design.mat');
-save(save_path, 'design');
-fprintf('Design saved to: %s\n', save_path); %[output:8a39122c]
+% Save %[output:8a39122c]
+if isempty(matlab.project.rootProject)
+    openProject('C:/Users/u0130154/MATLAB/projects/digtwin_labo/digtwin_labo.prj');
+end
+prj = matlab.project.rootProject;
+save_dir = fullfile(prj.RootFolder, 'data');
+if ~isfolder(save_dir), mkdir(save_dir); end
+save(fullfile(save_dir, 'FSFB_torque_design.mat'), 'design');
+fprintf('Parameters saved to: %s\n', fullfile(save_dir, 'FSFB_torque_design.mat'));
 
 %[appendix]{"version":"1.0"}
 %---

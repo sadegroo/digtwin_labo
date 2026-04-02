@@ -77,11 +77,16 @@ None yet.
 
 ### Blockers/Concerns
 
-- [Research] Run discrimination heuristic (`getLatest()` + signal density) has not been validated against a real two-run `.mldatx` file — medium confidence. Validate in Phase 1 before proceeding to Phase 2.
 - [Research] SMAPE window policy (fairest mode for this competition) should be confirmed with instructor before competition day.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260402-ux4 | Fix single-file loading: both runs in one mldatx | 2026-04-02 | 07d7a11 | [260402-ux4-fix-single-file-loading-both-runs-in-one](./quick/260402-ux4-fix-single-file-loading-both-runs-in-one/) |
 
 ## Session Continuity
 
-Last session: 2026-04-02T19:41:22.905Z
-Stopped at: Completed 01-sdi-loading-and-session-loop/01-02-PLAN.md
+Last session: 2026-04-02
+Stopped at: Completed quick task 260402-ux4: Fix single-file loading
 Resume file: None

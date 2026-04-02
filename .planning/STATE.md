@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 1 context gathered
-last_updated: "2026-04-02T18:51:53.343Z"
-last_activity: 2026-04-02 — Roadmap created; requirements mapped across 4 phases
+status: executing
+stopped_at: Completed 01-sdi-loading-and-session-loop/01-01-PLAN.md
+last_updated: "2026-04-02T19:37:47.712Z"
+last_activity: 2026-04-02
 progress:
   total_phases: 4
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Correctly and fairly score every team's swingup attempts — accurate time extraction, proper signal alignment, and transparent SMAPE computation — so grades are defensible.
-**Current focus:** Phase 1 — SDI Loading
+**Current focus:** Phase 01 — sdi-loading-and-session-loop
 
 ## Current Position
 
-Phase: 1 of 4 (SDI Loading)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-04-02 — Roadmap created; requirements mapped across 4 phases
+Phase: 01 (sdi-loading-and-session-loop) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-02
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01-sdi-loading-and-session-loop P01 | 2 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -64,6 +65,8 @@ Recent decisions affecting current work:
 - Roadmap: Configurable SMAPE window (fixed/angle/swingup) implemented in Phase 3
 - Roadmap: Best-per-metric scoring across attempts implemented in Phase 4
 - Roadmap: BLDC team scored absolutely (not competitively) because only 1 BLDC team exists
+- [Phase 01-sdi-loading-and-session-loop]: Two-file workflow: separate hw+sim .mldatx files (one run each); SimMode='external'=hardware, 'normal'=simulation (deterministic, verified R2025b)
+- [Phase 01-sdi-loading-and-session-loop]: load_file_pair local function: always show scorer confirm/swap prompt; attempt.metrics=struct() placeholder for Phase 3
 
 ### Pending Todos
 
@@ -76,6 +79,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-02T18:51:53.337Z
-Stopped at: Phase 1 context gathered
-Resume file: .planning/phases/01-sdi-loading-and-session-loop/01-CONTEXT.md
+Last session: 2026-04-02T19:37:47.707Z
+Stopped at: Completed 01-sdi-loading-and-session-loop/01-01-PLAN.md
+Resume file: None

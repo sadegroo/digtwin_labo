@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   5. Typing the finalize command ends the session loop and makes the accumulated session state available for competitive ranking; the leaderboard is not computed until this command is issued
 **Plans:** 2 plans
 Plans:
-- [ ] 01-01-PLAN.md — Script skeleton with cfg struct, session init, SDI load-and-assert, SimMode run discrimination
+- [x] 01-01-PLAN.md — Script skeleton with cfg struct, session init, SDI load-and-assert, SimMode run discrimination
 - [ ] 01-02-PLAN.md — Interactive session loop with team assignment, attempt appending, and finalize detection
 
 ### Phase 2: Signal Selection, Alignment, and Per-File Plots

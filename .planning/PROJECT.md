@@ -15,11 +15,12 @@ Correctly and fairly score every team's swingup attempts — accurate time extra
 - ✓ Existing MATLAB/Simulink project with pendulum models, parameters, and SDI logging — existing
 - ✓ Hardware interface library (`resources/lib/digtwin_labo_lib.slx`) synced with MCU firmware — existing
 - ✓ State vector convention `z = [q1; v1; q2; v2]` established across all scripts — existing
+- ✓ Load and parse `.mldatx` files via Simulink Data Inspector API — Validated in Phase 1: SDI Loading
+- ✓ Separate hardware run from simulation run via SimMode discrimination — Validated in Phase 1: SDI Loading
 
 ### Active
 
-- [ ] Load and parse `.mldatx` files via Simulink Data Inspector API
-- [ ] Separate hardware run (archive) from simulation run (recent) in each `.mldatx`
+- [ ] Manual signal mapping with smart sorting (likely candidates first) for accel_cmd/torque and q2
 - [ ] Manual signal mapping with smart sorting (likely candidates first) for accel_cmd/torque and q2
 - [ ] Detect first non-zero acceleration/torque command (start time) for time alignment
 - [ ] Align hardware and simulation signals on the start time
@@ -88,4 +89,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-02 after initialization*
+*Last updated: 2026-04-02 after Phase 1 completion*

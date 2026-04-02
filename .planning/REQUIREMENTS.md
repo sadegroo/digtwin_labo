@@ -12,8 +12,9 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **LOAD-01**: Script loads `.mldatx` files via `Simulink.sdi.load` with `Simulink.sdi.clear` called before each file to prevent run contamination
 - [ ] **LOAD-02**: Script separates hardware run (archived) from simulation run (recent) within each `.mldatx` file
 - [ ] **LOAD-03**: Script gracefully skips corrupt or unloadable `.mldatx` files with `try/catch`, logging the error and continuing with remaining attempts
-- [ ] **LOAD-04**: Script processes a single team's zip of `.mldatx` files (unzipped to a folder)
-- [ ] **LOAD-05**: Script processes all 5 teams in sequence and aggregates results into a leaderboard
+- [ ] **LOAD-04**: Script operates in an incremental session loop: scorer provides one `.mldatx` file path at a time and assigns it to a named team; script processes that file immediately (signal mapping, alignment, metrics) before waiting for the next
+- [ ] **LOAD-05**: Script maintains a session state struct that accumulates per-team results across all loaded files; each new file appends to the team's attempt list without clearing prior results
+- [ ] **LOAD-06**: Script provides a "finalize" command that the scorer issues when all files have been submitted; finalization triggers competitive ranking (stepper ranking, BLDC absolute scoring) and produces the final leaderboard
 
 ### Signal Mapping
 
@@ -48,8 +49,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Output
 
 - [ ] **OUTP-01**: Script produces a MATLAB table with columns: Team, BestSwingupTime, BestSMAPE, TimePoints, SMAPEPoints, ParticipationPoint, TotalPoints, Rank
-- [ ] **OUTP-02**: Script exports leaderboard to CSV and Excel (`.xlsx`)
-- [ ] **OUTP-03**: Script produces overlay plots per attempt: hardware q2 vs simulation q2 (aligned)
+- [ ] **OUTP-02**: Script exports leaderboard to CSV and Excel (`.xlsx`) at finalization (when scorer issues the finalize command)
+- [ ] **OUTP-03**: Script produces an overlay plot immediately after each file is processed: hardware q2 vs simulation q2 (aligned), so the scorer can visually verify each attempt before loading the next
 - [ ] **OUTP-04**: Script prints per-team diagnostic summary: N attempts loaded, best time, best SMAPE, participation status
 - [ ] **OUTP-05**: All tunable parameters (thresholds, SMAPE window mode, angle tolerances) are in a `cfg` struct at the top of the script
 
@@ -83,40 +84,41 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LOAD-01 | — | Pending |
-| LOAD-02 | — | Pending |
-| LOAD-03 | — | Pending |
-| LOAD-04 | — | Pending |
-| LOAD-05 | — | Pending |
-| SIGM-01 | — | Pending |
-| SIGM-02 | — | Pending |
-| SIGM-03 | — | Pending |
-| ALGN-01 | — | Pending |
-| ALGN-02 | — | Pending |
-| METR-01 | — | Pending |
-| METR-02 | — | Pending |
-| METR-03 | — | Pending |
-| METR-04 | — | Pending |
-| METR-05 | — | Pending |
-| METR-06 | — | Pending |
-| METR-07 | — | Pending |
-| SCOR-01 | — | Pending |
-| SCOR-02 | — | Pending |
-| SCOR-03 | — | Pending |
-| SCOR-04 | — | Pending |
-| SCOR-05 | — | Pending |
-| SCOR-06 | — | Pending |
-| OUTP-01 | — | Pending |
-| OUTP-02 | — | Pending |
-| OUTP-03 | — | Pending |
-| OUTP-04 | — | Pending |
-| OUTP-05 | — | Pending |
+| LOAD-01 | Phase 1 | Pending |
+| LOAD-02 | Phase 1 | Pending |
+| LOAD-03 | Phase 1 | Pending |
+| LOAD-04 | Phase 1 | Pending |
+| LOAD-05 | Phase 1 | Pending |
+| LOAD-06 | Phase 1 | Pending |
+| SIGM-01 | Phase 2 | Pending |
+| SIGM-02 | Phase 2 | Pending |
+| SIGM-03 | Phase 2 | Pending |
+| ALGN-01 | Phase 2 | Pending |
+| ALGN-02 | Phase 2 | Pending |
+| OUTP-03 | Phase 2 | Pending |
+| METR-01 | Phase 3 | Pending |
+| METR-02 | Phase 3 | Pending |
+| METR-03 | Phase 3 | Pending |
+| METR-04 | Phase 3 | Pending |
+| METR-05 | Phase 3 | Pending |
+| METR-06 | Phase 3 | Pending |
+| METR-07 | Phase 3 | Pending |
+| SCOR-01 | Phase 4 | Pending |
+| SCOR-02 | Phase 4 | Pending |
+| SCOR-03 | Phase 4 | Pending |
+| SCOR-04 | Phase 4 | Pending |
+| SCOR-05 | Phase 4 | Pending |
+| SCOR-06 | Phase 4 | Pending |
+| OUTP-01 | Phase 4 | Pending |
+| OUTP-02 | Phase 4 | Pending |
+| OUTP-04 | Phase 4 | Pending |
+| OUTP-05 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 28 total
-- Mapped to phases: 0
-- Unmapped: 28
+- v1 requirements: 29 total
+- Mapped to phases: 29
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after initial definition*
+*Last updated: 2026-04-02 revised for incremental interactive workflow*

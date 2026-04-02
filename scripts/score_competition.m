@@ -37,9 +37,90 @@ session.finalized = false;
 fprintf('Session started. %d teams configured.\n', numel(cfg.teams));
 
 %% Session Loop
-%[text] Interactive loop: load file pairs, assign to teams. Type 'done' to finalize.
+%[text] Interactive loop: load file pairs, assign to teams. Type **done** to finalize.
 
-% --- Session loop added in Plan 02 ---
+team_names = {cfg.teams.name};
+
+while true
+    %% Prompt for hardware file
+    %[text] Select the **hardware** run (.mldatx) for this attempt.
+    [hw_fname, hw_dir] = uigetfile('*.mldatx', 'Select HARDWARE .mldatx file');
+    if isequal(hw_fname, 0)
+        % User cancelled file dialog
+        cmd = input('File selection cancelled. Type ''done'' to finalize or press Enter to retry: ', 's');
+        if strcmpi(strtrim(cmd), 'done')
+            break
+        end
+        continue
+    end
+    hw_file = fullfile(hw_dir, hw_fname);
+
+    %% Prompt for simulation file
+    %[text] Select the **simulation** run (.mldatx) for the same attempt.
+    [sim_fname, sim_dir] = uigetfile('*.mldatx', 'Select SIMULATION .mldatx file');
+    if isequal(sim_fname, 0)
+        fprintf('Simulation file selection cancelled. Restarting this attempt.\n');
+        continue
+    end
+    sim_file = fullfile(sim_dir, sim_fname);
+
+    %% Load and validate file pair
+    attempt = load_file_pair(hw_file, sim_file);
+    if isempty(attempt)
+        % load_file_pair already printed a warning
+        fprintf('Skipping this file pair. Try again.\n');
+        continue
+    end
+
+    %% Assign to team (per D-06: listdlg)
+    sel = listdlg('ListString', team_names, ...
+                  'SelectionMode', 'single', ...
+                  'Name', 'Assign to Team', ...
+                  'PromptString', sprintf('Assign "%s" + "%s" to which team?', hw_fname, sim_fname), ...
+                  'ListSize', [300, 200]);
+    if isempty(sel)
+        fprintf('Team selection cancelled. Skipping this file pair.\n');
+        continue
+    end
+
+    % Append attempt to selected team (per D-07: no overwrite)
+    team_idx = sel;
+    session.teams(team_idx).attempts{end+1} = attempt;
+    fprintf('Added attempt %d for team "%s" (%s).\n', ...
+        numel(session.teams(team_idx).attempts), ...
+        session.teams(team_idx).name, ...
+        session.teams(team_idx).type);
+
+    % Print session progress
+    fprintf('\n--- Session Progress ---\n');
+    for i = 1:numel(session.teams)
+        fprintf('  %s: %d attempt(s)\n', session.teams(i).name, numel(session.teams(i).attempts));
+    end
+    fprintf('\n');
+
+    %% Continue or finalize (per D-03, D-04)
+    cmd = input('Load another file pair? [Enter] to continue, ''done'' to finalize: ', 's');
+    if strcmpi(strtrim(cmd), 'done')
+        break
+    end
+end
+
+%% Finalization
+%[text] Session complete. Mark as finalized and display summary.
+
+session.finalized = true;
+fprintf('\n========================================\n');
+fprintf('SESSION FINALIZED\n');
+fprintf('========================================\n');
+fprintf('Teams: %d\n', numel(session.teams));
+for i = 1:numel(session.teams)
+    fprintf('  %s (%s): %d attempt(s)\n', ...
+        session.teams(i).name, ...
+        session.teams(i).type, ...
+        numel(session.teams(i).attempts));
+end
+fprintf('\nSession state is in workspace variable "session".\n');
+fprintf('Proceed to Phase 2 (signal selection and alignment).\n');
 
 function attempt = load_file_pair(hw_file, sim_file)
 %LOAD_FILE_PAIR Load hardware and simulation .mldatx files, discriminate runs.

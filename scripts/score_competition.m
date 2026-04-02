@@ -1,6 +1,6 @@
 %% Swingup Competition Scoring
-%[text] Scores team swingup attempts from .mldatx files. Session-based: load files one
-%[text] pair at a time, assign to teams, finalize to produce leaderboard.
+%[text] Scores team swingup attempts from .mldatx files. Session-based: load .mldatx
+%[text] files one at a time, assign to teams, finalize to produce leaderboard.
 clear
 clc
 
@@ -37,15 +37,15 @@ session.finalized = false;
 fprintf('Session started. %d teams configured.\n', numel(cfg.teams));
 
 %% Session Loop
-%[text] Interactive loop: load file pairs, assign to teams. Type **done** to finalize.
+%[text] Interactive loop: load files, assign to teams. Type **done** to finalize.
 
 team_names = {cfg.teams.name};
 
 while true
-    %% Prompt for hardware file
-    %[text] Select the **hardware** run (.mldatx) for this attempt.
-    [hw_fname, hw_dir] = uigetfile('*.mldatx', 'Select HARDWARE .mldatx file');
-    if isequal(hw_fname, 0)
+    %% Prompt for attempt file
+    %[text] Select the **.mldatx** file for this attempt (contains both hw and sim runs).
+    [fname, fdir] = uigetfile('*.mldatx', 'Select .mldatx file for this attempt');
+    if isequal(fname, 0)
         % User cancelled file dialog
         cmd = input('File selection cancelled. Type ''done'' to finalize or press Enter to retry: ', 's');
         if strcmpi(strtrim(cmd), 'done')
@@ -53,22 +53,12 @@ while true
         end
         continue
     end
-    hw_file = fullfile(hw_dir, hw_fname);
 
-    %% Prompt for simulation file
-    %[text] Select the **simulation** run (.mldatx) for the same attempt.
-    [sim_fname, sim_dir] = uigetfile('*.mldatx', 'Select SIMULATION .mldatx file');
-    if isequal(sim_fname, 0)
-        fprintf('Simulation file selection cancelled. Restarting this attempt.\n');
-        continue
-    end
-    sim_file = fullfile(sim_dir, sim_fname);
-
-    %% Load and validate file pair
-    attempt = load_file_pair(hw_file, sim_file);
+    %% Load and validate attempt
+    attempt = load_attempt(fullfile(fdir, fname));
     if isempty(attempt)
-        % load_file_pair already printed a warning
-        fprintf('Skipping this file pair. Try again.\n');
+        % load_attempt already printed a warning
+        fprintf('Skipping this file. Try again.\n');
         continue
     end
 
@@ -76,10 +66,10 @@ while true
     sel = listdlg('ListString', team_names, ...
                   'SelectionMode', 'single', ...
                   'Name', 'Assign to Team', ...
-                  'PromptString', sprintf('Assign "%s" + "%s" to which team?', hw_fname, sim_fname), ...
+                  'PromptString', sprintf('Assign "%s" to which team?', fname), ...
                   'ListSize', [300, 200]);
     if isempty(sel)
-        fprintf('Team selection cancelled. Skipping this file pair.\n');
+        fprintf('Team selection cancelled. Skipping this file.\n');
         continue
     end
 
@@ -99,7 +89,7 @@ while true
     fprintf('\n');
 
     %% Continue or finalize (per D-03, D-04)
-    cmd = input('Load another file pair? [Enter] to continue, ''done'' to finalize: ', 's');
+    cmd = input('Load another file? [Enter] to continue, ''done'' to finalize: ', 's');
     if strcmpi(strtrim(cmd), 'done')
         break
     end
@@ -122,23 +112,23 @@ end
 fprintf('\nSession state is in workspace variable "session".\n');
 fprintf('Proceed to Phase 2 (signal selection and alignment).\n');
 
-function attempt = load_file_pair(hw_file, sim_file)
-%LOAD_FILE_PAIR Load hardware and simulation .mldatx files, discriminate runs.
-%   attempt = LOAD_FILE_PAIR(hw\_file, sim\_file) clears SDI, loads both files,
-%   asserts exactly 2 runs, discriminates hw/sim by SimMode, and returns an
-%   attempt struct. Returns empty [] on failure.
+function attempt = load_attempt(file)
+%LOAD_ATTEMPT Load a single .mldatx file containing both hw and sim runs.
+%   attempt = LOAD_ATTEMPT(file) clears SDI, loads one .mldatx file,
+%   asserts exactly 2 runs, discriminates hw/sim by run ordering
+%   (ids(1) = archived = hardware, ids(end) = most recent = simulation),
+%   validates with SimMode, and returns an attempt struct. Returns [] on failure.
 
     attempt = [];
 
     % Clear SDI to prevent run contamination (LOAD-01, per D-02)
     Simulink.sdi.clear;
 
-    % Load both files
+    % Load the single file (contains both hw and sim runs)
     try
-        Simulink.sdi.load(hw_file);
-        Simulink.sdi.load(sim_file);
+        Simulink.sdi.load(file);
     catch e
-        warning('scorer:loadfail', 'Failed to load files: %s', e.message);
+        warning('scorer:loadfail', 'Failed to load file: %s', e.message);
         return
     end
 
@@ -146,49 +136,34 @@ function attempt = load_file_pair(hw_file, sim_file)
     ids = Simulink.sdi.getAllRunIDs();
     if numel(ids) ~= 2
         warning('scorer:badruncount', ...
-            'Expected 2 runs after loading file pair, got %d. Skipping.', numel(ids));
+            'Expected 2 runs after loading file, got %d. Skipping.', numel(ids));
         return
     end
 
+    % Primary: run ordering -- first ID = archived (hw), last ID = most recent (sim)
+    hw_id  = ids(1);
+    sim_id = ids(end);
+
     % Access both runs
-    r1 = Simulink.sdi.getRun(ids(1));
-    r2 = Simulink.sdi.getRun(ids(2));
+    hw_run  = Simulink.sdi.getRun(hw_id);
+    sim_run = Simulink.sdi.getRun(sim_id);
 
     % Display run summary (per D-01)
     fprintf('\n--- Run Summary ---\n');
-    fprintf('Run 1: "%s" | SimMode: %s | Signals: %d | Time: [%.3f, %.3f] s\n', ...
-        r1.Name, r1.SimMode, r1.SignalCount, r1.StartTime, r1.StopTime);
-    fprintf('Run 2: "%s" | SimMode: %s | Signals: %d | Time: [%.3f, %.3f] s\n', ...
-        r2.Name, r2.SimMode, r2.SignalCount, r2.StartTime, r2.StopTime);
+    fprintf('Run 1 (hw):  "%s" | SimMode: %s | Signals: %d | Time: [%.3f, %.3f] s\n', ...
+        hw_run.Name, hw_run.SimMode, hw_run.SignalCount, hw_run.StartTime, hw_run.StopTime);
+    fprintf('Run 2 (sim): "%s" | SimMode: %s | Signals: %d | Time: [%.3f, %.3f] s\n', ...
+        sim_run.Name, sim_run.SimMode, sim_run.SignalCount, sim_run.StartTime, sim_run.StopTime);
 
-    % Discriminate hardware vs simulation by SimMode (per D-01, RESEARCH primary recommendation)
-    hw_id = [];
-    sim_id = [];
-    for i = 1:numel(ids)
-        r = Simulink.sdi.getRun(ids(i));
-        if strcmp(r.SimMode, 'external')
-            hw_id = ids(i);
-        elseif strcmp(r.SimMode, 'normal')
-            sim_id = ids(i);
-        end
+    % Validate with SimMode (warn if inconsistent, but do not override ordering)
+    if ~isempty(hw_run.SimMode) && ~strcmp(hw_run.SimMode, 'external')
+        fprintf('  Note: hardware run SimMode is ''%s'' (expected ''external'')\n', hw_run.SimMode);
     end
-
-    % Fallback: if SimMode did not resolve both, use signal count (more signals = hardware)
-    if isempty(hw_id) || isempty(sim_id)
-        warning('scorer:simmode', ...
-            'SimMode did not resolve both runs. Falling back to signal count.');
-        if r1.SignalCount >= r2.SignalCount
-            hw_id = ids(1);
-            sim_id = ids(2);
-        else
-            hw_id = ids(2);
-            sim_id = ids(1);
-        end
+    if ~isempty(sim_run.SimMode) && ~strcmp(sim_run.SimMode, 'normal')
+        fprintf('  Note: simulation run SimMode is ''%s'' (expected ''normal'')\n', sim_run.SimMode);
     end
 
     % Display assignment
-    hw_run  = Simulink.sdi.getRun(hw_id);
-    sim_run = Simulink.sdi.getRun(sim_id);
     fprintf('  -> Hardware run: "%s" (SimMode: %s)\n', hw_run.Name, hw_run.SimMode);
     fprintf('  -> Simulation run: "%s" (SimMode: %s)\n', sim_run.Name, sim_run.SimMode);
 
@@ -207,8 +182,7 @@ function attempt = load_file_pair(hw_file, sim_file)
     attempt             = struct();
     attempt.hw_run_id   = hw_id;
     attempt.sim_run_id  = sim_id;
-    attempt.hw_file     = hw_file;
-    attempt.sim_file    = sim_file;
+    attempt.file        = file;
     attempt.metrics     = struct();   % placeholder for Phase 3
 end
 

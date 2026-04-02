@@ -12,9 +12,9 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **LOAD-01**: Script loads `.mldatx` files via `Simulink.sdi.load` with `Simulink.sdi.clear` called before each file to prevent run contamination
 - [x] **LOAD-02**: Script separates hardware run (archived) from simulation run (recent) within each `.mldatx` file
 - [x] **LOAD-03**: Script gracefully skips corrupt or unloadable `.mldatx` files with `try/catch`, logging the error and continuing with remaining attempts
-- [ ] **LOAD-04**: Script operates in an incremental session loop: scorer provides one `.mldatx` file path at a time and assigns it to a named team; script processes that file immediately (signal mapping, alignment, metrics) before waiting for the next
-- [ ] **LOAD-05**: Script maintains a session state struct that accumulates per-team results across all loaded files; each new file appends to the team's attempt list without clearing prior results
-- [ ] **LOAD-06**: Script provides a "finalize" command that the scorer issues when all files have been submitted; finalization triggers competitive ranking (stepper ranking, BLDC absolute scoring) and produces the final leaderboard
+- [x] **LOAD-04**: Script operates in an incremental session loop: scorer provides one `.mldatx` file path at a time and assigns it to a named team; script processes that file immediately (signal mapping, alignment, metrics) before waiting for the next
+- [x] **LOAD-05**: Script maintains a session state struct that accumulates per-team results across all loaded files; each new file appends to the team's attempt list without clearing prior results
+- [x] **LOAD-06**: Script provides a "finalize" command that the scorer issues when all files have been submitted; finalization triggers competitive ranking (stepper ranking, BLDC absolute scoring) and produces the final leaderboard
 
 ### Signal Mapping
 
@@ -87,9 +87,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LOAD-01 | Phase 1 | Complete |
 | LOAD-02 | Phase 1 | Complete |
 | LOAD-03 | Phase 1 | Complete |
-| LOAD-04 | Phase 1 | Pending |
-| LOAD-05 | Phase 1 | Pending |
-| LOAD-06 | Phase 1 | Pending |
+| LOAD-04 | Phase 1 | Complete |
+| LOAD-05 | Phase 1 | Complete |
+| LOAD-06 | Phase 1 | Complete |
 | SIGM-01 | Phase 2 | Pending |
 | SIGM-02 | Phase 2 | Pending |
 | SIGM-03 | Phase 2 | Pending |

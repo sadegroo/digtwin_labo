@@ -29,7 +29,10 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. A corrupt or unloadable file is skipped with a logged error; the session continues and the scorer can provide the next file
   4. After loading each file, the scorer is prompted for a team name and the result is appended to that team's entry in the session state struct; loading a second file for the same team adds a second attempt, it does not overwrite the first
   5. Typing the finalize command ends the session loop and makes the accumulated session state available for competitive ranking; the leaderboard is not computed until this command is issued
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 01-01-PLAN.md — Script skeleton with cfg struct, session init, SDI load-and-assert, SimMode run discrimination
+- [ ] 01-02-PLAN.md — Interactive session loop with team assignment, attempt appending, and finalize detection
 
 ### Phase 2: Signal Selection, Alignment, and Per-File Plots
 **Goal**: For each file as it is loaded, the scorer interactively picks the correct signals, visually confirms the selection, has both signals aligned to a common t=0, and immediately sees an overlay plot of that attempt — all before the next file is loaded
@@ -76,7 +79,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. SDI Loading and Session Loop | 0/? | Not started | - |
+| 1. SDI Loading and Session Loop | 0/2 | Planned | - |
 | 2. Signal Selection, Alignment, and Per-File Plots | 0/? | Not started | - |
 | 3. Metric Computation | 0/? | Not started | - |
 | 4. Scoring and Output | 0/? | Not started | - |

@@ -32,11 +32,17 @@ cfg.q2_keywords  = {'q2', 'theta', 'pend', 'angle', 'phi', 'joint2'};
 session = struct();
 session.teams = cfg.teams;
 for i = 1:numel(session.teams)
-    session.teams(i).attempts = {};
+    session.teams(i).attempts        = {};
+    session.teams(i).last_cmd_signal = '';
+    session.teams(i).last_q2_signal  = '';
+    session.teams(i).last_delta      = 0;
 end
 session.finalized = false;
 
 fprintf('Session started. %d teams configured.\n', numel(cfg.teams));
+
+% Create the persistent overlay figure (Phase 2 -- OUTP-03)
+overlay_fig = create_overlay_figure();
 
 %% Session Loop
 %[text] Interactive loop: load files, assign to teams. Type **done** to finalize.
@@ -64,7 +70,7 @@ while true
         continue
     end
 
-    %% Assign to team (per D-06: listdlg)
+    %% Assign to team FIRST (team needed for signal defaults -- D-03, D-06)
     sel = listdlg('ListString', team_names, ...
                   'SelectionMode', 'single', ...
                   'Name', 'Assign to Team', ...
@@ -74,16 +80,119 @@ while true
         fprintf('Team selection cancelled. Skipping this file.\n');
         continue
     end
-
-    % Append attempt to selected team (per D-07: no overwrite)
     team_idx = sel;
+    team     = session.teams(team_idx);
+
+    %% Signal selection with repick loop (SIGM-01, SIGM-02, SIGM-03, D-01, D-02, D-03)
+    hw_run = Simulink.sdi.getRun(attempt.hw_run_id);
+
+    signal_ok = false;
+    while true
+        [cmd_name, q2_name] = select_signals(hw_run, team, cfg.cmd_keywords, cfg.q2_keywords);
+        if isempty(cmd_name)
+            fprintf('Signal selection cancelled.\n');
+            break   % exit inner loop; signal_ok remains false
+        end
+
+        % Extract hw signals for preview (SIGM-03)
+        [hw_t_cmd, hw_cmd_data] = extract_signal(hw_run, cmd_name);
+        [hw_t_q2,  hw_q2_data]  = extract_signal(hw_run, q2_name);
+        if isempty(hw_t_cmd) || isempty(hw_t_q2)
+            warning('scorer:extractfail', 'Failed to extract selected signals. Re-pick.');
+            continue
+        end
+
+        % Defensive resample: cmd and q2 may have different time bases
+        % Resample q2 onto cmd's time grid so we have one consistent hw_t.
+        if ~isequal(hw_t_cmd, hw_t_q2)
+            hw_q2_data = interp1(hw_t_q2, hw_q2_data, hw_t_cmd, 'linear');
+        end
+
+        % Preview plot -- scorer confirms or repicks (SIGM-03)
+        confirmed = plot_preview(hw_t_cmd, hw_cmd_data, hw_q2_data, cmd_name, q2_name);
+        if confirmed
+            signal_ok = true;
+            break
+        end
+        fprintf('Re-picking signals...\n');
+    end
+
+    if ~signal_ok
+        fprintf('Skipping file.\n');
+        continue
+    end
+
+    %% Find matching signals in sim run (D-01)
+    sim_run = Simulink.sdi.getRun(attempt.sim_run_id);
+
+    [sim_t_cmd, sim_cmd_data] = extract_signal(sim_run, cmd_name);
+    [sim_t_q2,  sim_q2_data]  = extract_signal(sim_run, q2_name);
+
+    % Fallback: if sim command signal not found, pick manually (Research Pitfall 2)
+    if isempty(sim_t_cmd)
+        fprintf('Signal "%s" not found in sim run. Pick manually.\n', cmd_name);
+        [sim_cmd_name, ~] = select_signals(sim_run, struct(), cfg.cmd_keywords, cfg.q2_keywords);
+        if ~isempty(sim_cmd_name)
+            [sim_t_cmd, sim_cmd_data] = extract_signal(sim_run, sim_cmd_name);
+        end
+    end
+
+    % Fallback: if sim q2 signal not found, pick manually
+    if isempty(sim_t_q2)
+        fprintf('Signal "%s" not found in sim run. Pick manually.\n', q2_name);
+        [~, sim_q2_name] = select_signals(sim_run, struct(), cfg.cmd_keywords, cfg.q2_keywords);
+        if ~isempty(sim_q2_name)
+            [sim_t_q2, sim_q2_data] = extract_signal(sim_run, sim_q2_name);
+        end
+    end
+
+    % Defensive resample for sim signals: q2 onto cmd's time grid
+    if ~isequal(sim_t_cmd, sim_t_q2)
+        sim_q2_data = interp1(sim_t_q2, sim_q2_data, sim_t_cmd, 'linear');
+    end
+
+    %% Manual delta prompt -- LEFT-SHIFT hardware by delta seconds (D-05, D-06)
+    default_delta = session.teams(team_idx).last_delta;
+    delta_str = input( ...
+        sprintf('Manual time delta to LEFT-SHIFT hardware [s] (default=%.3f, Enter to accept): ', ...
+                default_delta), 's');
+    if isempty(strtrim(delta_str))
+        delta = default_delta;
+    else
+        delta = str2double(delta_str);
+        if isnan(delta)
+            fprintf('Invalid delta, using default %.3f s.\n', default_delta);
+            delta = default_delta;
+        end
+    end
+
+    %% Align signals (ALGN-01, ALGN-02)
+    % hw_t_cmd is the single hw time vector (hw_q2 was resampled onto it above).
+    % sim_t_cmd is the single sim time vector (sim_q2 was resampled onto it above).
+    aligned = align_signals(hw_t_cmd, hw_cmd_data, hw_q2_data, ...
+                            sim_t_cmd, sim_cmd_data, sim_q2_data, delta);
+
+    %% Store aligned data and signal metadata in attempt struct (D-12)
+    attempt.signals.cmd_name = cmd_name;
+    attempt.signals.q2_name  = q2_name;
+    attempt.signals.delta_s  = delta;
+    attempt.aligned          = aligned;
+
+    %% Update team defaults (D-03, D-06)
+    session.teams(team_idx).last_cmd_signal = cmd_name;
+    session.teams(team_idx).last_q2_signal  = q2_name;
+    session.teams(team_idx).last_delta      = delta;
+
+    %% Append attempt to team and update overlay figure (OUTP-03)
     session.teams(team_idx).attempts{end+1} = attempt;
-    fprintf('Added attempt %d for team "%s" (%s).\n', ...
+    label = sprintf('%s — %s', session.teams(team_idx).name, fname);
+    update_overlay_figure(overlay_fig, attempt, label);
+
+    % Print session progress
+    fprintf('\nAdded attempt %d for team "%s" (%s).\n', ...
         numel(session.teams(team_idx).attempts), ...
         session.teams(team_idx).name, ...
         session.teams(team_idx).type);
-
-    % Print session progress
     fprintf('\n--- Session Progress ---\n');
     for i = 1:numel(session.teams)
         fprintf('  %s: %d attempt(s)\n', session.teams(i).name, numel(session.teams(i).attempts));
@@ -112,7 +221,7 @@ for i = 1:numel(session.teams)
         numel(session.teams(i).attempts));
 end
 fprintf('\nSession state is in workspace variable "session".\n');
-fprintf('Proceed to Phase 2 (signal selection and alignment).\n');
+fprintf('Proceed to Phase 3 (metric computation).\n');
 
 function attempt = load_attempt(file)
 %LOAD_ATTEMPT Load a single .mldatx file containing both hw and sim runs.

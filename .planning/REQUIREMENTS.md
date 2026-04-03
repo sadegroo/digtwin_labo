@@ -18,14 +18,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Signal Mapping
 
-- [ ] **SIGM-01**: Script presents all signals from a run in a selection dialog (`listdlg`), sorted so likely candidates (accel, torque, cmd, q2, theta, pend) appear first
-- [ ] **SIGM-02**: Scorer manually picks which signal is the acceleration/torque command and which is q2 for each team
-- [ ] **SIGM-03**: Script shows a preview plot of the selected signals before scorer confirms the mapping
+- [x] **SIGM-01**: Script presents all signals from a run in a selection dialog (`listdlg`), sorted so likely candidates (accel, torque, cmd, q2, theta, pend) appear first
+- [x] **SIGM-02**: Scorer manually picks which signal is the acceleration/torque command and which is q2 for each team
+- [x] **SIGM-03**: Script shows a preview plot of the selected signals before scorer confirms the mapping
 
 ### Time Alignment
 
-- [ ] **ALGN-01**: Script detects start time as the first sample where `abs(accel_cmd) > threshold` (configurable threshold, default ~1% of saturation limit)
-- [ ] **ALGN-02**: Script time-aligns hardware and simulation signals so t=0 corresponds to the first non-zero command in each
+- [x] **ALGN-01**: Script detects start time as the first sample where `abs(accel_cmd) > threshold` (configurable threshold, default ~1% of saturation limit)
+- [x] **ALGN-02**: Script time-aligns hardware and simulation signals so t=0 corresponds to the first non-zero command in each
 
 ### Metric Computation
 
@@ -90,11 +90,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LOAD-04 | Phase 1 | Complete |
 | LOAD-05 | Phase 1 | Complete |
 | LOAD-06 | Phase 1 | Complete |
-| SIGM-01 | Phase 2 | Pending |
-| SIGM-02 | Phase 2 | Pending |
-| SIGM-03 | Phase 2 | Pending |
-| ALGN-01 | Phase 2 | Pending |
-| ALGN-02 | Phase 2 | Pending |
+| SIGM-01 | Phase 2 | Complete |
+| SIGM-02 | Phase 2 | Complete |
+| SIGM-03 | Phase 2 | Complete |
+| ALGN-01 | Phase 2 | Complete |
+| ALGN-02 | Phase 2 | Complete |
 | OUTP-03 | Phase 2 | Pending |
 | METR-01 | Phase 3 | Pending |
 | METR-02 | Phase 3 | Pending |

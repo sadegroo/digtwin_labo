@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Phase 2 context gathered
-last_updated: "2026-04-03T08:26:29.650Z"
-last_activity: 2026-04-02
+status: executing
+stopped_at: Completed 02-signal-selection-alignment-and-per-file-plots-02-01-PLAN.md
+last_updated: "2026-04-03T09:06:32.891Z"
+last_activity: 2026-04-03
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 4
+  completed_plans: 3
   percent: 0
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-02)
 
 **Core value:** Correctly and fairly score every team's swingup attempts — accurate time extraction, proper signal alignment, and transparent SMAPE computation — so grades are defensible.
-**Current focus:** Phase 01 — sdi-loading-and-session-loop
+**Current focus:** Phase 02 — signal-selection-alignment-and-per-file-plots
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-02
+Phase: 02 (signal-selection-alignment-and-per-file-plots) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-04-03
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 01-sdi-loading-and-session-loop P01 | 2 | 2 tasks | 2 files |
 | Phase 01-sdi-loading-and-session-loop P02 | 1 | 2 tasks | 1 files |
+| Phase 02-signal-selection-alignment-and-per-file-plots P01 | 2 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -70,6 +71,7 @@ Recent decisions affecting current work:
 - [Phase 01-sdi-loading-and-session-loop]: load_file_pair local function: always show scorer confirm/swap prompt; attempt.metrics=struct() placeholder for Phase 3
 - [Phase 01-sdi-loading-and-session-loop]: hw cancel offers 'done' option (natural exit); sim cancel restarts attempt silently
 - [Phase 01-sdi-loading-and-session-loop]: session progress printed after every attempt for scorer situational awareness
+- [Phase 02-signal-selection-alignment-and-per-file-plots]: cfg.cmd_keywords/q2_keywords defined; select_signals takes keywords as args (not workspace); align_signals delta subtracted for left-shift convention; unique(t) guard in extract_signal
 
 ### Pending Todos
 
@@ -87,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T08:26:29.640Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-signal-selection-alignment-and-per-file-plots/02-CONTEXT.md
+Last session: 2026-04-03T09:06:32.884Z
+Stopped at: Completed 02-signal-selection-alignment-and-per-file-plots-02-01-PLAN.md
+Resume file: None

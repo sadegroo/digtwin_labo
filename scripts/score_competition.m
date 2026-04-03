@@ -85,7 +85,8 @@ while true
     team     = session.teams(team_idx);
 
     %% Signal selection with repick loop (SIGM-01, SIGM-02, SIGM-03, D-01, D-02, D-03)
-    hw_run = Simulink.sdi.getRun(attempt.hw_run_id);
+    hw_run  = Simulink.sdi.getRun(attempt.hw_run_id);
+    sim_run = Simulink.sdi.getRun(attempt.sim_run_id);
 
     signal_ok = false;
     while true
@@ -95,7 +96,7 @@ while true
             break   % exit inner loop; signal_ok remains false
         end
 
-        % Extract hw signals for preview (SIGM-03)
+        % Extract hw signals
         [hw_t_cmd, hw_cmd_data] = extract_signal(hw_run, cmd_name);
         [hw_t_q2,  hw_q2_data]  = extract_signal(hw_run, q2_name);
         if isempty(hw_t_cmd) || isempty(hw_t_q2)
@@ -104,13 +105,38 @@ while true
         end
 
         % Defensive resample: cmd and q2 may have different time bases
-        % Resample q2 onto cmd's time grid so we have one consistent hw_t.
         if ~isequal(hw_t_cmd, hw_t_q2)
             hw_q2_data = interp1(hw_t_q2, hw_q2_data, hw_t_cmd, 'linear');
         end
 
-        % Preview plot -- scorer confirms or repicks (SIGM-03)
-        confirmed = plot_preview(hw_t_cmd, hw_cmd_data, hw_q2_data, cmd_name, q2_name, cfg.q2_unit);
+        % Extract sim signals (same names; fallback if not found)
+        [sim_t_cmd, sim_cmd_data] = extract_signal(sim_run, cmd_name);
+        [sim_t_q2,  sim_q2_data]  = extract_signal(sim_run, q2_name);
+
+        if isempty(sim_t_cmd)
+            fprintf('Signal "%s" not found in sim run. Pick manually.\n', cmd_name);
+            [sim_cmd_name, ~] = select_signals(sim_run, struct(), cfg.cmd_keywords, cfg.q2_keywords);
+            if ~isempty(sim_cmd_name)
+                [sim_t_cmd, sim_cmd_data] = extract_signal(sim_run, sim_cmd_name);
+            end
+        end
+        if isempty(sim_t_q2)
+            fprintf('Signal "%s" not found in sim run. Pick manually.\n', q2_name);
+            [~, sim_q2_name] = select_signals(sim_run, struct(), cfg.cmd_keywords, cfg.q2_keywords);
+            if ~isempty(sim_q2_name)
+                [sim_t_q2, sim_q2_data] = extract_signal(sim_run, sim_q2_name);
+            end
+        end
+
+        % Defensive resample for sim signals
+        if ~isempty(sim_t_cmd) && ~isempty(sim_t_q2) && ~isequal(sim_t_cmd, sim_t_q2)
+            sim_q2_data = interp1(sim_t_q2, sim_q2_data, sim_t_cmd, 'linear');
+        end
+
+        % Preview: overlay hw + sim q2 and command, truncated at swing-up
+        confirmed = plot_preview(hw_t_cmd, hw_cmd_data, hw_q2_data, ...
+                                 sim_t_cmd, sim_cmd_data, sim_q2_data, ...
+                                 cmd_name, q2_name, cfg.q2_unit);
         if confirmed
             signal_ok = true;
             break
@@ -121,35 +147,6 @@ while true
     if ~signal_ok
         fprintf('Skipping file.\n');
         continue
-    end
-
-    %% Find matching signals in sim run (D-01)
-    sim_run = Simulink.sdi.getRun(attempt.sim_run_id);
-
-    [sim_t_cmd, sim_cmd_data] = extract_signal(sim_run, cmd_name);
-    [sim_t_q2,  sim_q2_data]  = extract_signal(sim_run, q2_name);
-
-    % Fallback: if sim command signal not found, pick manually (Research Pitfall 2)
-    if isempty(sim_t_cmd)
-        fprintf('Signal "%s" not found in sim run. Pick manually.\n', cmd_name);
-        [sim_cmd_name, ~] = select_signals(sim_run, struct(), cfg.cmd_keywords, cfg.q2_keywords);
-        if ~isempty(sim_cmd_name)
-            [sim_t_cmd, sim_cmd_data] = extract_signal(sim_run, sim_cmd_name);
-        end
-    end
-
-    % Fallback: if sim q2 signal not found, pick manually
-    if isempty(sim_t_q2)
-        fprintf('Signal "%s" not found in sim run. Pick manually.\n', q2_name);
-        [~, sim_q2_name] = select_signals(sim_run, struct(), cfg.cmd_keywords, cfg.q2_keywords);
-        if ~isempty(sim_q2_name)
-            [sim_t_q2, sim_q2_data] = extract_signal(sim_run, sim_q2_name);
-        end
-    end
-
-    % Defensive resample for sim signals: q2 onto cmd's time grid
-    if ~isequal(sim_t_cmd, sim_t_q2)
-        sim_q2_data = interp1(sim_t_q2, sim_q2_data, sim_t_cmd, 'linear');
     end
 
     %% Manual delta prompt -- LEFT-SHIFT hardware by delta seconds (D-05, D-06)
@@ -429,32 +426,66 @@ function [t, data] = extract_signal(run_obj, signal_name)
     data = data(ia);
 end
 
-function confirmed = plot_preview(hw_t, hw_cmd, hw_q2, cmd_name, q2_name, q2_unit)
-%PLOT_PREVIEW Show a 2-subplot preview of selected signals before confirming.
-%   confirmed = PLOT_PREVIEW(hw\_t, hw\_cmd, hw\_q2, cmd\_name, q2\_name, q2\_unit)
-%   creates a temporary figure with two subplots: command signal (top) and
-%   pendulum angle (bottom).  Prompts the scorer to confirm or type "repick".
-%   Returns true if scorer confirms, false if scorer requests re-selection.
-%   (SIGM-03)
+function confirmed = plot_preview(hw_t, hw_cmd, hw_q2, sim_t, sim_cmd, sim_q2, cmd_name, q2_name, q2_unit)
+%PLOT_PREVIEW Show a 3-subplot preview overlaying hw and sim signals.
+%   Displays: (top) hw+sim q2 overlay, (mid) hw command, (bottom) sim command.
+%   Signals are truncated at the first sample where |q2| reaches the upright
+%   position (±pi rad / ±180 deg / ±0.5 rev) to keep command axis scale
+%   reasonable during the swing-up phase.  (SIGM-03)
 
-    fig = figure('Name', 'Signal Preview - confirm or cancel', 'NumberTitle', 'off');
+    % Determine upright threshold in data units
+    switch q2_unit
+        case 'rev', threshold = 0.5;
+        case 'deg', threshold = 180;
+        case 'rad', threshold = pi;
+        otherwise,  threshold = 0.5;
+    end
 
-    ax1 = subplot(2, 1, 1);
-    plot(ax1, hw_t, hw_cmd, 'b');
-    title(ax1, sprintf('Command signal: %s', cmd_name));
-    ylabel(ax1, 'Command');
-    xlabel(ax1, 'Time [s]');
+    % Truncate hw at first upright crossing
+    hw_trunc = find(abs(hw_q2) >= threshold, 1, 'first');
+    if isempty(hw_trunc), hw_trunc = numel(hw_t); end
+    % Truncate sim at first upright crossing
+    sim_trunc = numel(sim_t);
+    if ~isempty(sim_q2)
+        idx = find(abs(sim_q2) >= threshold, 1, 'first');
+        if ~isempty(idx), sim_trunc = idx; end
+    end
+
+    fig = figure('Name', 'Signal Preview - confirm or cancel', ...
+                 'NumberTitle', 'off', 'Position', [100, 100, 900, 650]);
+
+    % Subplot 1: hw + sim q2 overlay (full length for offset assessment)
+    ax1 = subplot(3, 1, 1);
+    plot(ax1, hw_t, hw_q2, 'b-', 'DisplayName', 'HW q2');
+    hold(ax1, 'on');
+    if ~isempty(sim_t)
+        plot(ax1, sim_t, sim_q2, 'r--', 'DisplayName', 'Sim q2');
+    end
+    hold(ax1, 'off');
+    title(ax1, sprintf('q2 overlay: %s  (use to judge time offset)', q2_name));
+    ylabel(ax1, q2_label(q2_unit));
+    legend(ax1, 'show');
     grid(ax1, 'on');
 
-    ax2 = subplot(2, 1, 2);
-    plot(ax2, hw_t, hw_q2, 'r');
-    title(ax2, sprintf('Pendulum angle: %s', q2_name));
-    ylabel(ax2, q2_label(q2_unit));
-    xlabel(ax2, 'Time [s]');
+    % Subplot 2: hw command (truncated at swing-up)
+    ax2 = subplot(3, 1, 2);
+    plot(ax2, hw_t(1:hw_trunc), hw_cmd(1:hw_trunc), 'b');
+    title(ax2, sprintf('HW command (truncated at swing-up): %s', cmd_name));
+    ylabel(ax2, 'Command');
     grid(ax2, 'on');
 
-    linkaxes([ax1, ax2], 'x');
-    figure(fig);   % bring preview to front (may be behind overlay or command window)
+    % Subplot 3: sim command (truncated at swing-up)
+    ax3 = subplot(3, 1, 3);
+    if ~isempty(sim_t)
+        plot(ax3, sim_t(1:sim_trunc), sim_cmd(1:sim_trunc), 'r');
+    end
+    title(ax3, sprintf('Sim command (truncated at swing-up): %s', cmd_name));
+    ylabel(ax3, 'Command');
+    xlabel(ax3, 'Time [s]');
+    grid(ax3, 'on');
+
+    linkaxes([ax2, ax3], 'xy');   % sync command subplot scales
+    figure(fig);
     drawnow;
 
     resp = input('Preview shown. Press Enter to confirm or type "repick" to re-select: ', 's');

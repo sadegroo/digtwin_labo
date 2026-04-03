@@ -412,4 +412,134 @@ function aligned = align_signals(hw_t, hw_cmd, hw_q2, sim_t, sim_cmd, sim_q2, de
     aligned.delta      = delta;         % manual delta applied [s]
 end
 
+%[text]
+%[text] ---
+%[text] **Local Functions: Overlay Figure for Attempt Browsing**
+%[text] These functions create and manage the persistent overlay figure (OUTP-03).
+
+%[text] **create\_overlay\_figure** — Creates a persistent figure window with a popupmenu
+%[text] dropdown for browsing loaded attempts. Uses standard `figure()` (not `uifigure`)
+%[text] so that `uicontrol` popupmenu works (D-10).
+
+function fig = create_overlay_figure()
+%CREATE_OVERLAY_FIGURE Create the persistent overlay figure with attempt dropdown.
+%   fig = CREATE_OVERLAY_FIGURE() creates a standard MATLAB figure window with a
+%   uicontrol popupmenu at the top for browsing loaded attempts.  Attempt data is
+%   stored in fig.UserData as a struct with 'attempts' and 'labels' cell arrays.
+%   (OUTP-03, D-10)
+
+    fig = figure('Name', 'Attempt Overlay', 'NumberTitle', 'off', ...
+                 'Position', [100, 100, 900, 650]);
+    fig.UserData = struct('attempts', {{}}, 'labels', {{}});
+    uicontrol(fig, 'Style', 'popupmenu', ...
+              'Units', 'normalized', ...
+              'Position', [0.1, 0.95, 0.8, 0.04], ...
+              'String', {'(no attempts yet)'}, ...
+              'Tag', 'attempt_dropdown', ...
+              'Callback', @overlay_dropdown_callback);
+end
+
+%[text] **update\_overlay\_figure** — Appends a new attempt to the figure's UserData,
+%[text] updates the dropdown list to include all loaded attempts, selects the newest
+%[text] entry, and redraws the 3-subplot overlay for the new attempt.
+
+function update_overlay_figure(fig, attempt, label)
+%UPDATE_OVERLAY_FIGURE Append an attempt to the overlay figure and redraw subplots.
+%   UPDATE_OVERLAY_FIGURE(fig, attempt, label) appends attempt to fig.UserData,
+%   updates the dropdown list, selects the newest entry, and calls
+%   draw\_attempt\_subplots to render the 3-subplot overlay for this attempt.
+%   (OUTP-03, D-10)
+
+    ud = fig.UserData;
+    ud.attempts{end+1} = attempt;
+    ud.labels{end+1}   = label;
+    fig.UserData = ud;
+    dd = findobj(fig, 'Tag', 'attempt_dropdown');
+    set(dd, 'String', ud.labels, 'Value', numel(ud.labels));
+    draw_attempt_subplots(fig, attempt);
+end
+
+%[text] **draw\_attempt\_subplots** — Draws the 3-subplot overlay for a given attempt:
+%[text] (1) hw q2 vs sim q2 aligned, (2) command signal, (3) q2 difference.
+%[text] Uses `delete(findobj(...,'Type','axes'))` instead of `clf` to preserve
+%[text] the uicontrol dropdown (anti-pattern from Research: clf destroys uicontrol).
+
+function draw_attempt_subplots(fig, attempt)
+%DRAW_ATTEMPT_SUBPLOTS Render 3-subplot overlay for one attempt on the overlay figure.
+%   DRAW_ATTEMPT_SUBPLOTS(fig, attempt) brings the figure to front, deletes only
+%   axes (NOT the uicontrol dropdown), then draws three linked subplots:
+%     Subplot 1 (top)    -- hw q2 vs sim q2 overlay in degrees with t=0 annotation
+%     Subplot 2 (middle) -- accel/torque command signal with t=0 annotation
+%     Subplot 3 (bottom) -- q2 difference (hw - sim) in degrees with t=0 annotation
+%   X-axes are linked for synchronized zoom.  (D-09, D-11)
+
+    figure(fig);
+
+    % Delete only axes -- never use clf (would destroy the uicontrol dropdown)
+    delete(findobj(fig, 'Type', 'axes'));
+
+    % Extract aligned data
+    t   = attempt.aligned.t;
+    hw  = attempt.aligned.hw_q2 * 180/pi;
+    sim = attempt.aligned.sim_q2 * 180/pi;
+    cmd = attempt.aligned.hw_cmd;
+
+    % Subplot 1 (top): hw q2 vs sim q2 overlay (D-09)
+    ax1 = subplot(3, 1, 1, 'Parent', fig);
+    plot(ax1, t, hw,  'b-',  'DisplayName', 'Hardware q2');
+    hold(ax1, 'on');
+    plot(ax1, t, sim, 'r--', 'DisplayName', 'Simulation q2');
+    hold(ax1, 'off');
+    ylabel(ax1, 'q2 [deg]');
+    title(ax1, 'Hardware q2 vs Simulation q2 (aligned)');
+    legend(ax1, 'show');
+    grid(ax1, 'on');
+    % t=0 annotation (D-11): include delta if nonzero
+    if attempt.aligned.delta ~= 0
+        xline(ax1, 0, 'k--', sprintf('t=0 (delta=%.3fs)', attempt.aligned.delta));
+    else
+        xline(ax1, 0, 'k--', 't=0');
+    end
+
+    % Subplot 2 (middle): command signal (D-09)
+    ax2 = subplot(3, 1, 2, 'Parent', fig);
+    plot(ax2, t, cmd, 'm');
+    ylabel(ax2, 'Command');
+    title(ax2, 'Accel / Torque Command');
+    grid(ax2, 'on');
+    xline(ax2, 0, 'k--');
+
+    % Subplot 3 (bottom): q2 difference hw - sim (D-09)
+    ax3 = subplot(3, 1, 3, 'Parent', fig);
+    plot(ax3, t, hw - sim, 'g');
+    ylabel(ax3, 'hw-sim [deg]');
+    xlabel(ax3, 'Aligned time [s]');
+    title(ax3, 'q2 Difference (hw - sim)');
+    grid(ax3, 'on');
+    xline(ax3, 0, 'k--');
+
+    % Link x-axes for synchronized zoom (D-09)
+    linkaxes([ax1, ax2, ax3], 'x');
+    drawnow;
+end
+
+%[text] **overlay\_dropdown\_callback** — Callback for the attempt dropdown.  When
+%[text] the scorer selects a different attempt from the dropdown, this redraws the
+%[text] 3-subplot overlay for the selected attempt.  Uses `ancestor` to get the
+%[text] figure handle (not `gcf`), and `get(src,'Value')` for the 1-based index.
+
+function overlay_dropdown_callback(src, ~)
+%OVERLAY_DROPDOWN_CALLBACK Redraw overlay subplots for the selected attempt.
+%   OVERLAY_DROPDOWN_CALLBACK(src, ~) reads the dropdown selection index,
+%   retrieves the corresponding attempt from fig.UserData, and redraws the
+%   3-subplot overlay via draw\_attempt\_subplots.  (D-10)
+
+    fig = ancestor(src, 'figure');
+    ud  = fig.UserData;
+    idx = get(src, 'Value');
+    if idx <= numel(ud.attempts)
+        draw_attempt_subplots(fig, ud.attempts{idx});
+    end
+end
+
 %[appendix]{"version":"1.0"}

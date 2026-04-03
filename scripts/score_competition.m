@@ -394,21 +394,14 @@ function scores = score_names(names, keywords)
     end
 end
 
-%[text] **convert\_q2** — Converts q2 from radians to the configured display unit and returns the axis label.
-function [data_out, label] = convert_q2(data_rad, unit)
+%[text] **q2\_label** — Returns the axis label string for the configured q2 unit.
+%[text] No conversion is applied; `cfg.q2\_unit` declares what unit the raw SDI data is in.
+function label = q2_label(unit)
     switch unit
-        case 'rev'
-            data_out = data_rad / (2*pi);
-            label = 'q2 [rev]';
-        case 'deg'
-            data_out = data_rad * 180/pi;
-            label = 'q2 [deg]';
-        case 'rad'
-            data_out = data_rad;
-            label = 'q2 [rad]';
-        otherwise
-            data_out = data_rad / (2*pi);
-            label = 'q2 [rev]';
+        case 'rev', label = 'q2 [rev]';
+        case 'deg', label = 'q2 [deg]';
+        case 'rad', label = 'q2 [rad]';
+        otherwise,  label = 'q2 [rev]';
     end
 end
 
@@ -454,14 +447,14 @@ function confirmed = plot_preview(hw_t, hw_cmd, hw_q2, cmd_name, q2_name, q2_uni
     grid(ax1, 'on');
 
     ax2 = subplot(2, 1, 2);
-    [hw_q2_disp, q2_label] = convert_q2(hw_q2, q2_unit);
-    plot(ax2, hw_t, hw_q2_disp, 'r');
+    plot(ax2, hw_t, hw_q2, 'r');
     title(ax2, sprintf('Pendulum angle: %s', q2_name));
-    ylabel(ax2, q2_label);
+    ylabel(ax2, q2_label(q2_unit));
     xlabel(ax2, 'Time [s]');
     grid(ax2, 'on');
 
     linkaxes([ax1, ax2], 'x');
+    figure(fig);   % bring preview to front (may be behind overlay or command window)
     drawnow;
 
     resp = input('Preview shown. Press Enter to confirm or type "repick" to re-select: ', 's');
@@ -615,8 +608,8 @@ function draw_attempt_subplots(fig, attempt)
     % Extract aligned data and convert q2 to display unit
     t   = attempt.aligned.t;
     q2_unit = fig.UserData.q2_unit;
-    [hw, q2_label]  = convert_q2(attempt.aligned.hw_q2, q2_unit);
-    [sim, ~]        = convert_q2(attempt.aligned.sim_q2, q2_unit);
+    hw  = attempt.aligned.hw_q2;
+    sim = attempt.aligned.sim_q2;
     cmd = attempt.aligned.hw_cmd;
 
     % Subplot 1 (top): hw q2 vs sim q2 overlay (D-09)
@@ -625,7 +618,7 @@ function draw_attempt_subplots(fig, attempt)
     hold(ax1, 'on');
     plot(ax1, t, sim, 'r--', 'DisplayName', 'Simulation q2');
     hold(ax1, 'off');
-    ylabel(ax1, q2_label);
+    ylabel(ax1, q2_label(q2_unit));
     title(ax1, 'Hardware q2 vs Simulation q2 (aligned)');
     legend(ax1, 'show');
     grid(ax1, 'on');
@@ -647,8 +640,7 @@ function draw_attempt_subplots(fig, attempt)
     % Subplot 3 (bottom): q2 difference hw - sim (D-09)
     ax3 = subplot(3, 1, 3, 'Parent', fig);
     plot(ax3, t, hw - sim, 'g');
-    diff_label = strrep(q2_label, 'q2', 'hw-sim');
-    ylabel(ax3, diff_label);
+    ylabel(ax3, strrep(q2_label(q2_unit), 'q2', 'hw-sim'));
     xlabel(ax3, 'Aligned time [s]');
     title(ax3, 'q2 Difference (hw - sim)');
     grid(ax3, 'on');

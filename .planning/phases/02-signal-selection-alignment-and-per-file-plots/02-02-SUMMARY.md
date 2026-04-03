@@ -81,10 +81,26 @@ Each function has a `%[text]` Live Script documentation header per CLAUDE.md con
 |------|--------|-------------|
 | Task 1 | a5ccbc0 | feat(02-02): add overlay figure local functions (create, update, draw, callback) |
 | Task 2 | d29b420 | feat(02-02): wire Phase 2 functions into session loop and extend team/attempt structs |
+| Task 3 (verify) | ef3c9d2 | fix(02-01): remove invalid 'stable' arg from sort calls |
+| Task 3 (verify) | da1937b | feat(02): add configurable q2 display unit (rev/deg/rad) |
+| Task 3 (verify) | 63826c3 | feat(02): add 'undo' option to remove last attempt |
+| Task 3 (verify) | 6a59f76 | fix(02): q2 scale and preview visibility bugs |
+| Task 3 (verify) | 3c220ad | feat(02): preview overlays hw+sim q2, truncate cmd at swing-up |
+| Task 3 (verify) | b923cdb | feat(02): persistent truncation after swing-up |
+| Task 3 (verify) | 8c9792d | chore(02): rename teams and reduce truncation margin to 1s |
+| Task 3 (verify) | 9142f4f | feat(02): prompt for q2 unit at startup via listdlg |
+| Task 3 (verify) | 854ec74 | feat(02): per-file q2 unit selection |
 
 ## Deviations from Plan
 
-None - plan executed exactly as written.
+Checkpoint verification revealed several issues and enhancements:
+- `sort(..., 'stable')` invalid in MATLAB — removed (stable by default)
+- q2 unit made configurable per-file via listdlg (rev/deg/rad), stored per attempt
+- Preview redesigned: 3-subplot hw+sim q2 overlay + truncated cmd plots
+- Persistent signal truncation 1s after swing-up (configurable margin)
+- Added 'undo' option to remove last attempt
+- Team names updated: Lambda (BLDC), Rho, Theta, Pi, Omega
+- `convert_q2` replaced with `q2_label` (no conversion, just labeling — raw data is in declared unit)
 
 ## Known Stubs
 

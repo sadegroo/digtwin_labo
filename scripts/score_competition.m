@@ -200,10 +200,14 @@ while true
     end
     fprintf('\n');
 
-    %% Continue or finalize (per D-03, D-04)
-    cmd = input('Load another file? [Enter] to continue, ''done'' to finalize: ', 's');
-    if strcmpi(strtrim(cmd), 'done')
+    %% Continue, undo, or finalize
+    cmd = input('Load another file? [Enter] continue, ''undo'' remove last, ''done'' finalize: ', 's');
+    cmd = lower(strtrim(cmd));
+    if strcmp(cmd, 'done')
         break
+    elseif strcmp(cmd, 'undo')
+        [session, overlay_fig] = remove_last_attempt(session, team_idx, overlay_fig);
+        continue
     end
 end
 
@@ -672,6 +676,48 @@ function overlay_dropdown_callback(src, ~)
     if idx <= numel(ud.attempts)
         draw_attempt_subplots(fig, ud.attempts{idx});
     end
+end
+
+%[text] **remove\_last\_attempt** — Removes the most recent attempt from a team and
+%[text] updates the overlay figure dropdown accordingly.
+
+function [session, fig] = remove_last_attempt(session, team_idx, fig)
+%REMOVE_LAST_ATTEMPT Undo the last attempt added for a given team.
+%   Removes the last attempt from session.teams(team\_idx).attempts and syncs
+%   the overlay figure's UserData and dropdown.
+
+    n = numel(session.teams(team_idx).attempts);
+    if n == 0
+        fprintf('No attempts to remove for team "%s".\n', session.teams(team_idx).name);
+        return
+    end
+
+    session.teams(team_idx).attempts(end) = [];
+    fprintf('Removed attempt %d from team "%s".\n', n, session.teams(team_idx).name);
+
+    % Sync overlay figure
+    ud = fig.UserData;
+    if ~isempty(ud.attempts)
+        ud.attempts(end) = [];
+        ud.labels(end)   = [];
+        fig.UserData = ud;
+
+        dd = findobj(fig, 'Tag', 'attempt_dropdown');
+        if isempty(ud.labels)
+            set(dd, 'String', {'(no attempts yet)'}, 'Value', 1);
+            delete(findobj(fig, 'Type', 'axes'));
+        else
+            set(dd, 'String', ud.labels, 'Value', numel(ud.labels));
+            draw_attempt_subplots(fig, ud.attempts{end});
+        end
+    end
+
+    % Print updated progress
+    fprintf('\n--- Session Progress ---\n');
+    for i = 1:numel(session.teams)
+        fprintf('  %s: %d attempt(s)\n', session.teams(i).name, numel(session.teams(i).attempts));
+    end
+    fprintf('\n');
 end
 
 %[appendix]{"version":"1.0"}

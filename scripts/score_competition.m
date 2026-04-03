@@ -321,12 +321,12 @@ function [cmd_name, q2_name] = select_signals(hw_run, team, cmd_keywords, q2_key
 
     % Score and sort for command signal
     cmd_scores = score_names(names, cmd_keywords);
-    [~, cmd_order] = sort(cmd_scores, 'descend', 'stable');
+    [~, cmd_order] = sort(cmd_scores, 'descend');
     cmd_list = names(cmd_order);
 
     % Score and sort for q2 signal
     q2_scores = score_names(names, q2_keywords);
-    [~, q2_order] = sort(q2_scores, 'descend', 'stable');
+    [~, q2_order] = sort(q2_scores, 'descend');
     q2_list = names(q2_order);
 
     % Default pre-selection: top scored (index 1)

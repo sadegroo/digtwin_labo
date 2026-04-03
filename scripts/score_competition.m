@@ -337,4 +337,79 @@ function confirmed = plot_preview(hw_t, hw_cmd, hw_q2, cmd_name, q2_name)
     confirmed = ~strcmpi(strtrim(resp), 'repick');
 end
 
+function aligned = align_signals(hw_t, hw_cmd, hw_q2, sim_t, sim_cmd, sim_q2, delta)
+%ALIGN_SIGNALS Align hardware and simulation signals to t=0 at first nonzero command.
+%   aligned = ALIGN_SIGNALS(hw\_t, hw\_cmd, hw\_q2, sim\_t, sim\_cmd, sim\_q2, delta)
+%   detects the start time independently in each run as the first sample where
+%   abs(cmd) > 0, shifts both time vectors to t=0, applies a manual delta to the
+%   hardware time axis (delta > 0 left-shifts hw -- compensates for dead time),
+%   crops both signals to their common time overlap, and defensively resamples the
+%   simulation onto the hardware time grid if sample rates differ.
+%
+%   **Delta convention:** hw\_t\_aligned = hw\_t - hw\_t\_start - delta.
+%   A positive delta means "the hardware response is delayed by this much,
+%   shift it earlier" (subtract delta shifts the hw time axis to the left).
+%
+%   Returns a struct with fields:
+%     aligned.t           -- common aligned time axis [s] (starts near 0)
+%     aligned.hw\_q2       -- hardware pendulum angle [rad]
+%     aligned.sim\_q2      -- simulation pendulum angle [rad]
+%     aligned.hw\_cmd      -- hardware command signal
+%     aligned.hw\_t\_start  -- raw time of first nonzero cmd in hw run [s]
+%     aligned.sim\_t\_start -- raw time of first nonzero cmd in sim run [s]
+%     aligned.delta       -- manual delta applied [s]
+
+    % Step 1: Detect start time in hw run (D-04: first nonzero sample)
+    hw_start_idx = find(abs(hw_cmd) > 0, 1, 'first');
+    if isempty(hw_start_idx)
+        warning('scorer:nostart', 'No nonzero command in hw run. Using t(1).');
+        hw_start_idx = 1;
+    end
+    hw_t_start = hw_t(hw_start_idx);
+
+    % Step 2: Detect start time in sim run independently (D-04)
+    sim_start_idx = find(abs(sim_cmd) > 0, 1, 'first');
+    if isempty(sim_start_idx)
+        warning('scorer:nostart', 'No nonzero command in sim run. Using t(1).');
+        sim_start_idx = 1;
+    end
+    sim_t_start = sim_t(sim_start_idx);
+
+    % Step 3: Align time vectors to t=0 at start; apply manual delta to hw (D-05)
+    % Positive delta means hw response is delayed -- subtract to left-shift hw
+    hw_t_aligned  = hw_t  - hw_t_start  - delta;
+    sim_t_aligned = sim_t - sim_t_start;
+
+    % Step 4: Crop to common time overlap (D-07 -- no NaN padding, no extrapolation)
+    t_start_common = max(hw_t_aligned(1),   sim_t_aligned(1));
+    t_end_common   = min(hw_t_aligned(end), sim_t_aligned(end));
+
+    hw_mask  = hw_t_aligned  >= t_start_common & hw_t_aligned  <= t_end_common;
+    sim_mask = sim_t_aligned >= t_start_common & sim_t_aligned <= t_end_common;
+
+    hw_t_crop   = hw_t_aligned(hw_mask);
+    hw_q2_crop  = hw_q2(hw_mask);
+    hw_cmd_crop = hw_cmd(hw_mask);
+
+    sim_t_crop  = sim_t_aligned(sim_mask);
+    sim_q2_crop = sim_q2(sim_mask);
+
+    % Step 5: Defensive resample sim onto hw grid if sample rates differ (D-08)
+    if numel(hw_t_crop) ~= numel(sim_t_crop) || ...
+       max(abs(hw_t_crop - sim_t_crop)) > 1e-6
+        sim_q2_crop = interp1(sim_t_crop, sim_q2_crop, hw_t_crop, 'linear');
+        sim_t_crop  = hw_t_crop;  %#ok<NASGU>
+    end
+
+    % Step 6: Return aligned struct (D-12)
+    aligned            = struct();
+    aligned.t          = hw_t_crop;    % common aligned time axis [s]
+    aligned.hw_q2      = hw_q2_crop;   % hw pendulum angle [rad]
+    aligned.sim_q2     = sim_q2_crop;  % sim pendulum angle [rad]
+    aligned.hw_cmd     = hw_cmd_crop;  % command signal
+    aligned.hw_t_start = hw_t_start;   % raw time of first nonzero cmd in hw [s]
+    aligned.sim_t_start = sim_t_start; % raw time of first nonzero cmd in sim [s]
+    aligned.delta      = delta;         % manual delta applied [s]
+end
+
 %[appendix]{"version":"1.0"}

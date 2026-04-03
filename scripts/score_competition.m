@@ -12,11 +12,11 @@ end
 %[text] All tunable parameters. Edit this section before running.
 
 cfg = struct();
-cfg.teams(1) = struct('name', 'Team Alpha', 'type', 'stepper');
-cfg.teams(2) = struct('name', 'Team Beta',  'type', 'stepper');
-cfg.teams(3) = struct('name', 'Team Gamma', 'type', 'stepper');
-cfg.teams(4) = struct('name', 'Team Delta', 'type', 'stepper');
-cfg.teams(5) = struct('name', 'BLDC Team',  'type', 'bldc');
+cfg.teams(1) = struct('name', 'Team Lambda', 'type', 'bldc');
+cfg.teams(2) = struct('name', 'Team Rho',    'type', 'stepper');
+cfg.teams(3) = struct('name', 'Team Theta',  'type', 'stepper');
+cfg.teams(4) = struct('name', 'Team Pi',     'type', 'stepper');
+cfg.teams(5) = struct('name', 'Team Omega',  'type', 'stepper');
 
 cfg.smape_window           = 'fixed';   % 'fixed', 'angle', or 'swingup' (Phase 3)
 cfg.smape_fixed_duration   = 5;         % seconds (Phase 3)
@@ -24,7 +24,7 @@ cfg.swingup_hold_time      = 1.0;       % seconds pendulum must hold at +/-pi (P
 cfg.swingup_tolerance_deg  = 2;         % degrees tolerance around +/-pi (Phase 3)
 cfg.participation_threshold = pi/2;     % rad -- |q2| must exceed this (Phase 3)
 cfg.q2_unit = 'rev';  % 'rev' (default), 'deg', or 'rad' — display unit for q2 plots
-cfg.truncation_margin = 2;  % seconds after q2 reaches upright to truncate signals
+cfg.truncation_margin = 1;  % seconds after q2 reaches upright to truncate signals
 cfg.cmd_keywords = {'accel', 'torque', 'cmd', 'tau', 'ref', 'input'};
 cfg.q2_keywords  = {'q2', 'theta', 'pend', 'angle', 'phi', 'joint2'};
 

@@ -47,7 +47,7 @@ Plans:
   6. An overlay plot of the aligned hardware q2 vs simulation q2 is displayed immediately after each file is processed, so the scorer can visually verify the attempt before loading the next file
 **Plans:** 2 plans
 Plans:
-- [ ] 02-01-PLAN.md — Signal selection, preview, and alignment local functions (select_signals, score_names, extract_signal, plot_preview, align_signals)
+- [x] 02-01-PLAN.md — Signal selection, preview, and alignment local functions (select_signals, score_names, extract_signal, plot_preview, align_signals)
 - [ ] 02-02-PLAN.md — Overlay figure functions and session loop wiring (create_overlay_figure, update_overlay_figure, draw_attempt_subplots, full flow integration)
 
 ### Phase 3: Metric Computation

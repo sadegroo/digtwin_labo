@@ -23,6 +23,7 @@ cfg.smape_fixed_duration   = 5;         % seconds (Phase 3)
 cfg.swingup_hold_time      = 1.0;       % seconds pendulum must hold at +/-pi (Phase 3)
 cfg.swingup_tolerance_deg  = 2;         % degrees tolerance around +/-pi (Phase 3)
 cfg.participation_threshold = pi/2;     % rad -- |q2| must exceed this (Phase 3)
+cfg.q2_unit = 'rev';  % 'rev' (default), 'deg', or 'rad' — display unit for q2 plots
 cfg.cmd_keywords = {'accel', 'torque', 'cmd', 'tau', 'ref', 'input'};
 cfg.q2_keywords  = {'q2', 'theta', 'pend', 'angle', 'phi', 'joint2'};
 
@@ -42,7 +43,7 @@ session.finalized = false;
 fprintf('Session started. %d teams configured.\n', numel(cfg.teams));
 
 % Create the persistent overlay figure (Phase 2 -- OUTP-03)
-overlay_fig = create_overlay_figure();
+overlay_fig = create_overlay_figure(cfg.q2_unit);
 
 %% Session Loop
 %[text] Interactive loop: load files, assign to teams. Type **done** to finalize.
@@ -109,7 +110,7 @@ while true
         end
 
         % Preview plot -- scorer confirms or repicks (SIGM-03)
-        confirmed = plot_preview(hw_t_cmd, hw_cmd_data, hw_q2_data, cmd_name, q2_name);
+        confirmed = plot_preview(hw_t_cmd, hw_cmd_data, hw_q2_data, cmd_name, q2_name, cfg.q2_unit);
         if confirmed
             signal_ok = true;
             break
@@ -389,6 +390,24 @@ function scores = score_names(names, keywords)
     end
 end
 
+%[text] **convert\_q2** — Converts q2 from radians to the configured display unit and returns the axis label.
+function [data_out, label] = convert_q2(data_rad, unit)
+    switch unit
+        case 'rev'
+            data_out = data_rad / (2*pi);
+            label = 'q2 [rev]';
+        case 'deg'
+            data_out = data_rad * 180/pi;
+            label = 'q2 [deg]';
+        case 'rad'
+            data_out = data_rad;
+            label = 'q2 [rad]';
+        otherwise
+            data_out = data_rad / (2*pi);
+            label = 'q2 [rev]';
+    end
+end
+
 function [t, data] = extract_signal(run_obj, signal_name)
 %EXTRACT_SIGNAL Extract time vector and data from an SDI run by signal name.
 %   [t, data] = EXTRACT_SIGNAL(run\_obj, signal\_name) looks up signal\_name in
@@ -413,11 +432,11 @@ function [t, data] = extract_signal(run_obj, signal_name)
     data = data(ia);
 end
 
-function confirmed = plot_preview(hw_t, hw_cmd, hw_q2, cmd_name, q2_name)
+function confirmed = plot_preview(hw_t, hw_cmd, hw_q2, cmd_name, q2_name, q2_unit)
 %PLOT_PREVIEW Show a 2-subplot preview of selected signals before confirming.
-%   confirmed = PLOT_PREVIEW(hw\_t, hw\_cmd, hw\_q2, cmd\_name, q2\_name) creates a
-%   temporary figure with two subplots: command signal (top) and pendulum angle
-%   in degrees (bottom).  Prompts the scorer to confirm or type "repick".
+%   confirmed = PLOT_PREVIEW(hw\_t, hw\_cmd, hw\_q2, cmd\_name, q2\_name, q2\_unit)
+%   creates a temporary figure with two subplots: command signal (top) and
+%   pendulum angle (bottom).  Prompts the scorer to confirm or type "repick".
 %   Returns true if scorer confirms, false if scorer requests re-selection.
 %   (SIGM-03)
 
@@ -431,9 +450,10 @@ function confirmed = plot_preview(hw_t, hw_cmd, hw_q2, cmd_name, q2_name)
     grid(ax1, 'on');
 
     ax2 = subplot(2, 1, 2);
-    plot(ax2, hw_t, hw_q2 * 180/pi, 'r');
+    [hw_q2_disp, q2_label] = convert_q2(hw_q2, q2_unit);
+    plot(ax2, hw_t, hw_q2_disp, 'r');
     title(ax2, sprintf('Pendulum angle: %s', q2_name));
-    ylabel(ax2, 'q2 [deg]');
+    ylabel(ax2, q2_label);
     xlabel(ax2, 'Time [s]');
     grid(ax2, 'on');
 
@@ -530,16 +550,16 @@ end
 %[text] dropdown for browsing loaded attempts. Uses standard `figure()` (not `uifigure`)
 %[text] so that `uicontrol` popupmenu works (D-10).
 
-function fig = create_overlay_figure()
+function fig = create_overlay_figure(q2_unit)
 %CREATE_OVERLAY_FIGURE Create the persistent overlay figure with attempt dropdown.
-%   fig = CREATE_OVERLAY_FIGURE() creates a standard MATLAB figure window with a
-%   uicontrol popupmenu at the top for browsing loaded attempts.  Attempt data is
-%   stored in fig.UserData as a struct with 'attempts' and 'labels' cell arrays.
+%   fig = CREATE_OVERLAY_FIGURE(q2\_unit) creates a standard MATLAB figure window
+%   with a uicontrol popupmenu at the top for browsing loaded attempts.  Attempt
+%   data is stored in fig.UserData with 'attempts', 'labels', and 'q2\_unit'.
 %   (OUTP-03, D-10)
 
     fig = figure('Name', 'Attempt Overlay', 'NumberTitle', 'off', ...
                  'Position', [100, 100, 900, 650]);
-    fig.UserData = struct('attempts', {{}}, 'labels', {{}});
+    fig.UserData = struct('attempts', {{}}, 'labels', {{}}, 'q2_unit', q2_unit);
     uicontrol(fig, 'Style', 'popupmenu', ...
               'Units', 'normalized', ...
               'Position', [0.1, 0.95, 0.8, 0.04], ...
@@ -577,9 +597,10 @@ function draw_attempt_subplots(fig, attempt)
 %DRAW_ATTEMPT_SUBPLOTS Render 3-subplot overlay for one attempt on the overlay figure.
 %   DRAW_ATTEMPT_SUBPLOTS(fig, attempt) brings the figure to front, deletes only
 %   axes (NOT the uicontrol dropdown), then draws three linked subplots:
-%     Subplot 1 (top)    -- hw q2 vs sim q2 overlay in degrees with t=0 annotation
+%     Subplot 1 (top)    -- hw q2 vs sim q2 overlay with t=0 annotation
 %     Subplot 2 (middle) -- accel/torque command signal with t=0 annotation
-%     Subplot 3 (bottom) -- q2 difference (hw - sim) in degrees with t=0 annotation
+%     Subplot 3 (bottom) -- q2 difference (hw - sim) with t=0 annotation
+%   q2 display unit is read from fig.UserData.q2_unit ('rev', 'deg', or 'rad').
 %   X-axes are linked for synchronized zoom.  (D-09, D-11)
 
     figure(fig);
@@ -587,10 +608,11 @@ function draw_attempt_subplots(fig, attempt)
     % Delete only axes -- never use clf (would destroy the uicontrol dropdown)
     delete(findobj(fig, 'Type', 'axes'));
 
-    % Extract aligned data
+    % Extract aligned data and convert q2 to display unit
     t   = attempt.aligned.t;
-    hw  = attempt.aligned.hw_q2 * 180/pi;
-    sim = attempt.aligned.sim_q2 * 180/pi;
+    q2_unit = fig.UserData.q2_unit;
+    [hw, q2_label]  = convert_q2(attempt.aligned.hw_q2, q2_unit);
+    [sim, ~]        = convert_q2(attempt.aligned.sim_q2, q2_unit);
     cmd = attempt.aligned.hw_cmd;
 
     % Subplot 1 (top): hw q2 vs sim q2 overlay (D-09)
@@ -599,7 +621,7 @@ function draw_attempt_subplots(fig, attempt)
     hold(ax1, 'on');
     plot(ax1, t, sim, 'r--', 'DisplayName', 'Simulation q2');
     hold(ax1, 'off');
-    ylabel(ax1, 'q2 [deg]');
+    ylabel(ax1, q2_label);
     title(ax1, 'Hardware q2 vs Simulation q2 (aligned)');
     legend(ax1, 'show');
     grid(ax1, 'on');
@@ -621,7 +643,8 @@ function draw_attempt_subplots(fig, attempt)
     % Subplot 3 (bottom): q2 difference hw - sim (D-09)
     ax3 = subplot(3, 1, 3, 'Parent', fig);
     plot(ax3, t, hw - sim, 'g');
-    ylabel(ax3, 'hw-sim [deg]');
+    diff_label = strrep(q2_label, 'q2', 'hw-sim');
+    ylabel(ax3, diff_label);
     xlabel(ax3, 'Aligned time [s]');
     title(ax3, 'q2 Difference (hw - sim)');
     grid(ax3, 'on');

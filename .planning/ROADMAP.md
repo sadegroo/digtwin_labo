@@ -45,7 +45,10 @@ Plans:
   4. Start time is detected using a hysteresis threshold (configurable, defaults to 5% of peak command over 5 consecutive samples) that does not fire on sensor noise
   5. After alignment, both hardware and simulation q2 signals start from t=0 at the first non-zero command
   6. An overlay plot of the aligned hardware q2 vs simulation q2 is displayed immediately after each file is processed, so the scorer can visually verify the attempt before loading the next file
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 02-01-PLAN.md — Signal selection, preview, and alignment local functions (select_signals, score_names, extract_signal, plot_preview, align_signals)
+- [ ] 02-02-PLAN.md — Overlay figure functions and session loop wiring (create_overlay_figure, update_overlay_figure, draw_attempt_subplots, full flow integration)
 
 ### Phase 3: Metric Computation
 **Goal**: For each attempt, the script correctly computes whether swingup was achieved, the swingup time, and SMAPE between hardware and simulation q2 — with correct handling of angle wrapping, division-by-zero guards, and configurable windows
@@ -80,6 +83,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. SDI Loading and Session Loop | 2/2 | Complete   | 2026-04-02 |
-| 2. Signal Selection, Alignment, and Per-File Plots | 0/? | Not started | - |
+| 2. Signal Selection, Alignment, and Per-File Plots | 0/2 | Planned | - |
 | 3. Metric Computation | 0/? | Not started | - |
 | 4. Scoring and Output | 0/? | Not started | - |

@@ -48,7 +48,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 02-01-PLAN.md — Signal selection, preview, and alignment local functions (select_signals, score_names, extract_signal, plot_preview, align_signals)
-- [ ] 02-02-PLAN.md — Overlay figure functions and session loop wiring (create_overlay_figure, update_overlay_figure, draw_attempt_subplots, full flow integration)
+- [x] 02-02-PLAN.md — Overlay figure functions and session loop wiring (create_overlay_figure, update_overlay_figure, draw_attempt_subplots, full flow integration)
 
 ### Phase 3: Metric Computation
 **Goal**: For each attempt, the script correctly computes whether swingup was achieved, the swingup time, and SMAPE between hardware and simulation q2 — with correct handling of angle wrapping, division-by-zero guards, and configurable windows

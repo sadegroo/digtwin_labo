@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 02-signal-selection-alignment-and-per-file-plots-02-01-PLAN.md
-last_updated: "2026-04-03T09:06:32.891Z"
+status: verifying
+stopped_at: "Completed 02-signal-selection-alignment-and-per-file-plots-02-02-PLAN.md — Task 3 (checkpoint:human-verify) pending"
+last_updated: "2026-04-03T09:12:11.927Z"
 last_activity: 2026-04-03
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-02)
 
 Phase: 02 (signal-selection-alignment-and-per-file-plots) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-03
 
 Progress: [░░░░░░░░░░] 0%
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-sdi-loading-and-session-loop P01 | 2 | 2 tasks | 2 files |
 | Phase 01-sdi-loading-and-session-loop P02 | 1 | 2 tasks | 1 files |
 | Phase 02-signal-selection-alignment-and-per-file-plots P01 | 2 | 2 tasks | 1 files |
+| Phase 02 P02 | 10 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,9 @@ Recent decisions affecting current work:
 - [Phase 01-sdi-loading-and-session-loop]: hw cancel offers 'done' option (natural exit); sim cancel restarts attempt silently
 - [Phase 01-sdi-loading-and-session-loop]: session progress printed after every attempt for scorer situational awareness
 - [Phase 02-signal-selection-alignment-and-per-file-plots]: cfg.cmd_keywords/q2_keywords defined; select_signals takes keywords as args (not workspace); align_signals delta subtracted for left-shift convention; unique(t) guard in extract_signal
+- [Phase 02-signal-selection-alignment-and-per-file-plots]: uicontrol popupmenu used for attempt dropdown (standard figure, not uifigure) to avoid uidropdown incompatibility
+- [Phase 02-signal-selection-alignment-and-per-file-plots]: delete(findobj(fig,'Type','axes')) instead of clf preserves uicontrol dropdown between redraws
+- [Phase 02-signal-selection-alignment-and-per-file-plots]: Team assignment moved before signal selection so team defaults (last signal names and delta) are available for pre-selection
 
 ### Pending Todos
 
@@ -89,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T09:06:32.884Z
-Stopped at: Completed 02-signal-selection-alignment-and-per-file-plots-02-01-PLAN.md
+Last session: 2026-04-03T09:12:11.920Z
+Stopped at: Completed 02-signal-selection-alignment-and-per-file-plots-02-02-PLAN.md — Task 3 (checkpoint:human-verify) pending
 Resume file: None

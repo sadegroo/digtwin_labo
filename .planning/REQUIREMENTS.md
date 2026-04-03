@@ -50,7 +50,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **OUTP-01**: Script produces a MATLAB table with columns: Team, BestSwingupTime, BestSMAPE, TimePoints, SMAPEPoints, ParticipationPoint, TotalPoints, Rank
 - [ ] **OUTP-02**: Script exports leaderboard to CSV and Excel (`.xlsx`) at finalization (when scorer issues the finalize command)
-- [ ] **OUTP-03**: Script produces an overlay plot immediately after each file is processed: hardware q2 vs simulation q2 (aligned), so the scorer can visually verify each attempt before loading the next
+- [x] **OUTP-03**: Script produces an overlay plot immediately after each file is processed: hardware q2 vs simulation q2 (aligned), so the scorer can visually verify each attempt before loading the next
 - [ ] **OUTP-04**: Script prints per-team diagnostic summary: N attempts loaded, best time, best SMAPE, participation status
 - [ ] **OUTP-05**: All tunable parameters (thresholds, SMAPE window mode, angle tolerances) are in a `cfg` struct at the top of the script
 
@@ -95,7 +95,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SIGM-03 | Phase 2 | Complete |
 | ALGN-01 | Phase 2 | Complete |
 | ALGN-02 | Phase 2 | Complete |
-| OUTP-03 | Phase 2 | Pending |
+| OUTP-03 | Phase 2 | Complete |
 | METR-01 | Phase 3 | Pending |
 | METR-02 | Phase 3 | Pending |
 | METR-03 | Phase 3 | Pending |

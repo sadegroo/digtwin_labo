@@ -23,10 +23,23 @@ cfg.smape_fixed_duration   = 5;         % seconds (Phase 3)
 cfg.swingup_hold_time      = 1.0;       % seconds pendulum must hold at +/-pi (Phase 3)
 cfg.swingup_tolerance_deg  = 2;         % degrees tolerance around +/-pi (Phase 3)
 cfg.participation_threshold = pi/2;     % rad -- |q2| must exceed this (Phase 3)
-cfg.q2_unit = 'rev';  % 'rev' (default), 'deg', or 'rad' — display unit for q2 plots
 cfg.truncation_margin = 1;  % seconds after q2 reaches upright to truncate signals
 cfg.cmd_keywords = {'accel', 'torque', 'cmd', 'tau', 'ref', 'input'};
 cfg.q2_keywords  = {'q2', 'theta', 'pend', 'angle', 'phi', 'joint2'};
+
+% Prompt for q2 display unit
+q2_units = {'rev', 'deg', 'rad'};
+[sel, ok] = listdlg('ListString', q2_units, ...
+    'SelectionMode', 'single', ...
+    'Name', 'q2 Unit', ...
+    'PromptString', 'Select q2 display unit:', ...
+    'InitialValue', 1, ...
+    'ListSize', [200, 100]);
+if ok
+    cfg.q2_unit = q2_units{sel};
+else
+    cfg.q2_unit = 'rev';  % default if cancelled
+end
 
 %% Session Initialization
 %[text] Initialize the session state struct that accumulates results across all loaded files.

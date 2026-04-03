@@ -57,7 +57,7 @@ session.finalized = false;
 fprintf('Session started. %d teams configured.\n', numel(cfg.teams));
 
 % Create the persistent overlay figure (Phase 2 -- OUTP-03)
-overlay_fig = create_overlay_figure(cfg.q2_unit);
+overlay_fig = create_overlay_figure();
 
 %% Session Loop
 %[text] Interactive loop: load files, assign to teams. Type **done** to finalize.
@@ -97,6 +97,23 @@ while true
     end
     team_idx = sel;
     team     = session.teams(team_idx);
+
+    %% Select q2 unit for this file
+    q2_units = {'rev', 'deg', 'rad'};
+    cur_idx = find(strcmp(q2_units, cfg.q2_unit), 1);
+    if isempty(cur_idx), cur_idx = 1; end
+    [usel, uok] = listdlg('ListString', q2_units, ...
+        'SelectionMode', 'single', ...
+        'Name', 'q2 Unit', ...
+        'PromptString', sprintf('q2 unit for "%s":', fname), ...
+        'InitialValue', cur_idx, ...
+        'ListSize', [200, 100]);
+    if uok
+        file_q2_unit = q2_units{usel};
+        cfg.q2_unit = file_q2_unit;  % update default for next file
+    else
+        file_q2_unit = cfg.q2_unit;  % keep current default
+    end
 
     %% Signal selection with repick loop (SIGM-01, SIGM-02, SIGM-03, D-01, D-02, D-03)
     hw_run  = Simulink.sdi.getRun(attempt.hw_run_id);
@@ -150,7 +167,7 @@ while true
         % Preview: overlay hw + sim q2 and command, truncated at swing-up
         confirmed = plot_preview(hw_t_cmd, hw_cmd_data, hw_q2_data, ...
                                  sim_t_cmd, sim_cmd_data, sim_q2_data, ...
-                                 cmd_name, q2_name, cfg.q2_unit);
+                                 cmd_name, q2_name, file_q2_unit);
         if confirmed
             signal_ok = true;
             break
@@ -185,12 +202,13 @@ while true
                             sim_t_cmd, sim_cmd_data, sim_q2_data, delta);
 
     %% Truncate signals 2s after swing-up (upright position)
-    aligned = truncate_at_swingup(aligned, cfg.q2_unit, cfg.truncation_margin);
+    aligned = truncate_at_swingup(aligned, file_q2_unit, cfg.truncation_margin);
 
     %% Store aligned data and signal metadata in attempt struct (D-12)
     attempt.signals.cmd_name = cmd_name;
     attempt.signals.q2_name  = q2_name;
     attempt.signals.delta_s  = delta;
+    attempt.signals.q2_unit  = file_q2_unit;
     attempt.aligned          = aligned;
 
     %% Update team defaults (D-03, D-06)
@@ -595,16 +613,16 @@ end
 %[text] dropdown for browsing loaded attempts. Uses standard `figure()` (not `uifigure`)
 %[text] so that `uicontrol` popupmenu works (D-10).
 
-function fig = create_overlay_figure(q2_unit)
+function fig = create_overlay_figure()
 %CREATE_OVERLAY_FIGURE Create the persistent overlay figure with attempt dropdown.
-%   fig = CREATE_OVERLAY_FIGURE(q2\_unit) creates a standard MATLAB figure window
-%   with a uicontrol popupmenu at the top for browsing loaded attempts.  Attempt
-%   data is stored in fig.UserData with 'attempts', 'labels', and 'q2\_unit'.
+%   fig = CREATE_OVERLAY_FIGURE() creates a standard MATLAB figure window with a
+%   uicontrol popupmenu at the top for browsing loaded attempts.  Attempt data is
+%   stored in fig.UserData with 'attempts' and 'labels' cell arrays.
 %   (OUTP-03, D-10)
 
     fig = figure('Name', 'Attempt Overlay', 'NumberTitle', 'off', ...
                  'Position', [100, 100, 900, 650]);
-    fig.UserData = struct('attempts', {{}}, 'labels', {{}}, 'q2_unit', q2_unit);
+    fig.UserData = struct('attempts', {{}}, 'labels', {{}});
     uicontrol(fig, 'Style', 'popupmenu', ...
               'Units', 'normalized', ...
               'Position', [0.1, 0.95, 0.8, 0.04], ...
@@ -645,7 +663,7 @@ function draw_attempt_subplots(fig, attempt)
 %     Subplot 1 (top)    -- hw q2 vs sim q2 overlay with t=0 annotation
 %     Subplot 2 (middle) -- accel/torque command signal with t=0 annotation
 %     Subplot 3 (bottom) -- q2 difference (hw - sim) with t=0 annotation
-%   q2 display unit is read from fig.UserData.q2_unit ('rev', 'deg', or 'rad').
+%   q2 display unit is read from attempt.signals.q2\_unit (per-file unit).
 %   X-axes are linked for synchronized zoom.  (D-09, D-11)
 
     figure(fig);
@@ -653,9 +671,9 @@ function draw_attempt_subplots(fig, attempt)
     % Delete only axes -- never use clf (would destroy the uicontrol dropdown)
     delete(findobj(fig, 'Type', 'axes'));
 
-    % Extract aligned data and convert q2 to display unit
+    % Extract aligned data; unit is per-attempt
     t   = attempt.aligned.t;
-    q2_unit = fig.UserData.q2_unit;
+    q2_unit = attempt.signals.q2_unit;
     hw  = attempt.aligned.hw_q2;
     sim = attempt.aligned.sim_q2;
     cmd = attempt.aligned.hw_cmd;

@@ -24,6 +24,7 @@ cfg.swingup_hold_time      = 1.0;       % seconds pendulum must hold at +/-pi (P
 cfg.swingup_tolerance_deg  = 2;         % degrees tolerance around +/-pi (Phase 3)
 cfg.participation_threshold = pi/2;     % rad -- |q2| must exceed this (Phase 3)
 cfg.q2_unit = 'rev';  % 'rev' (default), 'deg', or 'rad' — display unit for q2 plots
+cfg.truncation_margin = 2;  % seconds after q2 reaches upright to truncate signals
 cfg.cmd_keywords = {'accel', 'torque', 'cmd', 'tau', 'ref', 'input'};
 cfg.q2_keywords  = {'q2', 'theta', 'pend', 'angle', 'phi', 'joint2'};
 
@@ -169,6 +170,9 @@ while true
     % sim_t_cmd is the single sim time vector (sim_q2 was resampled onto it above).
     aligned = align_signals(hw_t_cmd, hw_cmd_data, hw_q2_data, ...
                             sim_t_cmd, sim_cmd_data, sim_q2_data, delta);
+
+    %% Truncate signals 2s after swing-up (upright position)
+    aligned = truncate_at_swingup(aligned, cfg.q2_unit, cfg.truncation_margin);
 
     %% Store aligned data and signal metadata in attempt struct (D-12)
     attempt.signals.cmd_name = cmd_name;
@@ -741,6 +745,51 @@ function [session, fig] = remove_last_attempt(session, team_idx, fig)
         fprintf('  %s: %d attempt(s)\n', session.teams(i).name, numel(session.teams(i).attempts));
     end
     fprintf('\n');
+end
+
+%[text] **truncate\_at\_swingup** — Truncates all aligned signals at a configurable margin
+%[text] after q2 first reaches the upright position (±0.5 rev / ±180 deg / ±$\pi$ rad).
+%[text] This removes post-stabilization data where controller failures can dominate the
+%[text] command scale.
+
+function aligned = truncate_at_swingup(aligned, q2_unit, margin_s)
+%TRUNCATE_AT_SWINGUP Truncate aligned signals after swing-up + margin.
+%   aligned = TRUNCATE_AT_SWINGUP(aligned, q2\_unit, margin\_s) finds the first
+%   sample where either |hw\_q2| or |sim\_q2| reaches the upright threshold, then
+%   keeps data up to margin\_s seconds after that point.
+
+    % Upright threshold in data units
+    switch q2_unit
+        case 'rev', threshold = 0.5;
+        case 'deg', threshold = 180;
+        case 'rad', threshold = pi;
+        otherwise,  threshold = 0.5;
+    end
+
+    t = aligned.t;
+
+    % Find first upright crossing in hw and sim
+    hw_idx  = find(abs(aligned.hw_q2) >= threshold, 1, 'first');
+    sim_idx = find(abs(aligned.sim_q2) >= threshold, 1, 'first');
+
+    % Take earliest crossing; if neither reaches upright, keep everything
+    cross_idx = min([hw_idx, sim_idx]);
+    if isempty(cross_idx)
+        return
+    end
+
+    % Truncation point: crossing time + margin
+    t_cut = t(cross_idx) + margin_s;
+    cut_idx = find(t >= t_cut, 1, 'first');
+    if isempty(cut_idx) || cut_idx >= numel(t)
+        return  % margin extends beyond data — keep everything
+    end
+
+    % Truncate all fields
+    aligned.t      = t(1:cut_idx);
+    aligned.hw_q2  = aligned.hw_q2(1:cut_idx);
+    aligned.sim_q2 = aligned.sim_q2(1:cut_idx);
+    aligned.hw_cmd = aligned.hw_cmd(1:cut_idx);
 end
 
 %[appendix]{"version":"1.0"}

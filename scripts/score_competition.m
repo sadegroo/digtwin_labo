@@ -23,6 +23,8 @@ cfg.smape_fixed_duration   = 5;         % seconds (Phase 3)
 cfg.swingup_hold_time      = 1.0;       % seconds pendulum must hold at +/-pi (Phase 3)
 cfg.swingup_tolerance_deg  = 2;         % degrees tolerance around +/-pi (Phase 3)
 cfg.participation_threshold = pi/2;     % rad -- |q2| must exceed this (Phase 3)
+cfg.cmd_keywords = {'accel', 'torque', 'cmd', 'tau', 'ref', 'input'};
+cfg.q2_keywords  = {'q2', 'theta', 'pend', 'angle', 'phi', 'joint2'};
 
 %% Session Initialization
 %[text] Initialize the session state struct that accumulates results across all loaded files.
@@ -184,6 +186,155 @@ function attempt = load_attempt(file)
     attempt.sim_run_id  = sim_id;
     attempt.file        = file;
     attempt.metrics     = struct();   % placeholder for Phase 3
+end
+
+%[text]
+%[text] ---
+%[text] **Local Functions: Signal Selection, Extraction, Preview, and Alignment**
+%[text] These functions are the computational building blocks for Phase 2.
+
+function [cmd_name, q2_name] = select_signals(hw_run, team, cmd_keywords, q2_keywords)
+%SELECT_SIGNALS Present sorted signal lists and let scorer pick command and q2 signals.
+%   [cmd_name, q2_name] = SELECT_SIGNALS(hw_run, team, cmd_keywords, q2_keywords)
+%   builds a list of all signal names from the hardware run, scores each name
+%   against cmd\_keywords / q2\_keywords, sorts highest-scoring names to the top,
+%   and presents two listdlg dialogs.  Returns [] for both names on cancel.
+%
+%   If team.last\_cmd\_signal / team.last\_q2\_signal are set, those names are
+%   pre-selected (D-03 team default).
+
+    % Build signal name list from hardware run
+    n = hw_run.SignalCount;
+    names = cell(n, 1);
+    for i = 1:n
+        names{i} = hw_run.getSignalByIndex(i).Name;
+    end
+
+    % Score and sort for command signal
+    cmd_scores = score_names(names, cmd_keywords);
+    [~, cmd_order] = sort(cmd_scores, 'descend', 'stable');
+    cmd_list = names(cmd_order);
+
+    % Score and sort for q2 signal
+    q2_scores = score_names(names, q2_keywords);
+    [~, q2_order] = sort(q2_scores, 'descend', 'stable');
+    q2_list = names(q2_order);
+
+    % Default pre-selection: top scored (index 1)
+    cmd_init = 1;
+    q2_init  = 1;
+
+    % D-03: use previous signal names as default if available
+    if isfield(team, 'last_cmd_signal') && ~isempty(team.last_cmd_signal)
+        idx = find(strcmp(cmd_list, team.last_cmd_signal), 1);
+        if ~isempty(idx), cmd_init = idx; end
+    end
+    if isfield(team, 'last_q2_signal') && ~isempty(team.last_q2_signal)
+        idx = find(strcmp(q2_list, team.last_q2_signal), 1);
+        if ~isempty(idx), q2_init = idx; end
+    end
+
+    % First dialog: command/accel signal (SIGM-01, SIGM-02)
+    sel = listdlg('ListString', cmd_list, ...
+                  'SelectionMode', 'single', ...
+                  'Name', 'Select Command Signal', ...
+                  'PromptString', 'Pick the accel/torque command signal:', ...
+                  'InitialValue', cmd_init, ...
+                  'ListSize', [350, 250]);
+    if isempty(sel)
+        cmd_name = [];
+        q2_name  = [];
+        return
+    end
+    cmd_name = cmd_list{sel};
+
+    % Second dialog: q2 pendulum angle signal (SIGM-01, SIGM-02)
+    sel = listdlg('ListString', q2_list, ...
+                  'SelectionMode', 'single', ...
+                  'Name', 'Select q2 Signal', ...
+                  'PromptString', 'Pick the pendulum angle (q2) signal:', ...
+                  'InitialValue', q2_init, ...
+                  'ListSize', [350, 250]);
+    if isempty(sel)
+        cmd_name = [];
+        q2_name  = [];
+        return
+    end
+    q2_name = q2_list{sel};
+end
+
+function scores = score_names(names, keywords)
+%SCORE_NAMES Score each signal name by how many keywords it contains.
+%   scores = SCORE_NAMES(names, keywords) returns a numeric vector with one
+%   score per element of names.  Score = number of keyword substrings found
+%   in the lowercase signal name (case-insensitive substring matching).
+
+    scores = zeros(numel(names), 1);
+    for i = 1:numel(names)
+        n_lower = lower(names{i});
+        for k = 1:numel(keywords)
+            if contains(n_lower, keywords{k})
+                scores(i) = scores(i) + 1;
+            end
+        end
+    end
+end
+
+function [t, data] = extract_signal(run_obj, signal_name)
+%EXTRACT_SIGNAL Extract time vector and data from an SDI run by signal name.
+%   [t, data] = EXTRACT_SIGNAL(run\_obj, signal\_name) looks up signal\_name in
+%   run\_obj, extracts the timeseries, and returns time t and data as double
+%   column vectors.  Applies unique(t) to guard against duplicate timestamps
+%   (Pitfall 5 -- prevents interp1 failure).  Returns t=[] and data=[] if the
+%   signal is not found.
+
+    sigs = run_obj.getSignalsByName(signal_name);
+    if isempty(sigs)
+        t    = [];
+        data = [];
+        return
+    end
+    sig  = sigs(1);
+    ts   = sig.Values;
+    t    = ts.Time;
+    data = squeeze(ts.Data);
+
+    % Guard against duplicate timestamps (interp1 requires strictly monotonic t)
+    [t, ia] = unique(t);
+    data = data(ia);
+end
+
+function confirmed = plot_preview(hw_t, hw_cmd, hw_q2, cmd_name, q2_name)
+%PLOT_PREVIEW Show a 2-subplot preview of selected signals before confirming.
+%   confirmed = PLOT_PREVIEW(hw\_t, hw\_cmd, hw\_q2, cmd\_name, q2\_name) creates a
+%   temporary figure with two subplots: command signal (top) and pendulum angle
+%   in degrees (bottom).  Prompts the scorer to confirm or type "repick".
+%   Returns true if scorer confirms, false if scorer requests re-selection.
+%   (SIGM-03)
+
+    fig = figure('Name', 'Signal Preview - confirm or cancel', 'NumberTitle', 'off');
+
+    ax1 = subplot(2, 1, 1);
+    plot(ax1, hw_t, hw_cmd, 'b');
+    title(ax1, sprintf('Command signal: %s', cmd_name));
+    ylabel(ax1, 'Command');
+    xlabel(ax1, 'Time [s]');
+    grid(ax1, 'on');
+
+    ax2 = subplot(2, 1, 2);
+    plot(ax2, hw_t, hw_q2 * 180/pi, 'r');
+    title(ax2, sprintf('Pendulum angle: %s', q2_name));
+    ylabel(ax2, 'q2 [deg]');
+    xlabel(ax2, 'Time [s]');
+    grid(ax2, 'on');
+
+    linkaxes([ax1, ax2], 'x');
+    drawnow;
+
+    resp = input('Preview shown. Press Enter to confirm or type "repick" to re-select: ', 's');
+    close(fig);
+
+    confirmed = ~strcmpi(strtrim(resp), 'repick');
 end
 
 %[appendix]{"version":"1.0"}

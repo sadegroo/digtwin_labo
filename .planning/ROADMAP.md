@@ -94,7 +94,7 @@ Plans:
   5. Phase 1, 2, 4 SUMMARY frontmatter includes `requirements_completed` field
 **Plans:** 1 plan
 Plans:
-- [ ] 05-01-PLAN.md — Remove cfg.smape_window, add try/catch to finalization Steps 2-3, backfill requirements_completed in Phase 1/2/4 SUMMARYs
+- [x] 05-01-PLAN.md — Remove cfg.smape_window, add try/catch to finalization Steps 2-3, backfill requirements_completed in Phase 1/2/4 SUMMARYs
 
 ## Progress
 

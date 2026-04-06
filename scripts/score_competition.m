@@ -18,7 +18,7 @@ cfg.teams(3) = struct('name', 'Team Theta',  'type', 'stepper');
 cfg.teams(4) = struct('name', 'Team Pi',     'type', 'stepper');
 cfg.teams(5) = struct('name', 'Team Omega',  'type', 'stepper');
 
-cfg.smape_window           = 'fixed';   % 'fixed', 'angle', or 'swingup' (Phase 3)
+cfg.smape_window           = 'fixed';   % legacy; Phase 3 uses D-09 hybrid: max(5s, t_to_90deg)
 cfg.smape_fixed_duration   = 5;         % seconds (Phase 3)
 cfg.swingup_hold_time      = 1.0;       % seconds pendulum must hold at +/-pi (Phase 3)
 cfg.swingup_tolerance_deg  = 2;         % degrees tolerance around +/-pi (Phase 3)
@@ -200,6 +200,9 @@ while true
     % sim_t_cmd is the single sim time vector (sim_q2 was resampled onto it above).
     aligned = align_signals(hw_t_cmd, hw_cmd_data, hw_q2_data, ...
                             sim_t_cmd, sim_cmd_data, sim_q2_data, delta);
+
+    %% Compute metrics on pre-truncation data (METR-01..07, D-06/D-07)
+    attempt.metrics = compute_metrics(aligned, cfg, file_q2_unit);
 
     %% Truncate signals 2s after swing-up (upright position)
     aligned = truncate_at_swingup(aligned, file_q2_unit, cfg.truncation_margin);
@@ -821,6 +824,159 @@ function aligned = truncate_at_swingup(aligned, q2_unit, margin_s)
     aligned.hw_q2  = aligned.hw_q2(1:cut_idx);
     aligned.sim_q2 = aligned.sim_q2(1:cut_idx);
     aligned.hw_cmd = aligned.hw_cmd(1:cut_idx);
+end
+
+%[text]
+%[text] ---
+%[text] **Local Functions: Metric Computation**
+%[text] These functions compute per-attempt metrics (swingup success, swingup time,
+%[text] participation, and angular SMAPE) on pre-truncation aligned data (Phase 3).
+
+function idx = first_sustained_idx(mask, N)
+%FIRST_SUSTAINED_IDX Find start index of first window of N consecutive TRUE values.
+%   idx = FIRST\_SUSTAINED\_IDX(mask, N) returns the start index of the first
+%   contiguous block of length N where mask is TRUE.  Returns [] if no such
+%   window exists.  Uses conv(..., 'valid') for vectorized sliding-window check.
+
+    if N <= 1
+        idx = find(mask, 1, 'first');
+        return
+    end
+    counts  = conv(double(mask), ones(1, N), 'valid');
+    win_idx = find(counts >= N, 1, 'first');
+    idx     = win_idx;  % [] if not found; conv 'valid' preserves 1-based indexing
+end
+
+function smape = compute_smape_angular(hw_rad, sim_rad, epsilon)
+%COMPUTE_SMAPE_ANGULAR Angular SMAPE with wrapping and denominator guard.
+%   smape = COMPUTE\_SMAPE\_ANGULAR(hw\_rad, sim\_rad, epsilon) computes SMAPE
+%   using the angular difference formula mod(hw-sim+pi, 2\*pi)-pi for the
+%   numerator (handles wrapping near +/-pi per METR-07/D-12).  Samples where
+%   the denominator (|hw|+|sim|)/2 < epsilon are excluded (METR-06/D-13).
+%   Returns a percentage value, or NaN if no valid samples exist.
+
+    % Angular difference numerator (METR-07, D-12)
+    num   = abs(mod(hw_rad - sim_rad + pi, 2*pi) - pi);
+
+    % Symmetric denominator
+    denom = (abs(hw_rad) + abs(sim_rad)) / 2;
+
+    % Denominator guard (METR-06, D-13)
+    valid = denom >= epsilon;
+    if ~any(valid)
+        smape = NaN;
+        return
+    end
+
+    smape = mean(num(valid) ./ denom(valid)) * 100;  % percent
+end
+
+function out = yesno(flag)
+%YESNO Convert logical flag to 'YES'/'NO' string.
+    if flag, out = 'YES'; else, out = 'NO'; end
+end
+
+%[text] **compute\_metrics** — Computes all per-attempt metrics from pre-truncation
+%[text] aligned signals: participation flag, swingup success and time, and angular
+%[text] SMAPE with the D-09 hybrid window policy (max(5s, time\_to\_first\_90deg)).
+%[text] Unit conversion to radians is the first step (D-01/D-02). All thresholds
+%[text] operate in radians regardless of the per-file display unit.
+
+function metrics = compute_metrics(aligned, cfg, q2_unit)
+%COMPUTE_METRICS Compute swingup metrics from pre-truncation aligned signals.
+%   metrics = COMPUTE\_METRICS(aligned, cfg, q2\_unit) converts q2 signals to
+%   radians (D-01/D-02), then computes:
+%     - participation flag (METR-02, D-14): |q2| > pi/2 for >= 10 consecutive
+%       samples on the hardware signal
+%     - swingup success flag (METR-01, D-03/D-05): |abs(q2)-pi| < 2deg for
+%       >= 1 continuous second; both +pi and -pi count as upright
+%     - swingup time (METR-03, D-04): backdated to hold entry of first
+%       qualifying 1-second window
+%     - SMAPE with angular difference and D-09 hybrid window policy
+%       (METR-04/05/06/07): max(5s, time\_to\_first\_90deg); ineligible if
+%       |q2| never exceeds pi/2 (D-10)
+%   Returns a flat metrics struct with fields: swingup\_success, swingup\_time,
+%   participation, smape\_eligible, smape, smape\_window\_s.
+
+    % --- D-01/D-02: Convert to radians at function entry ----------------
+    % The aligned struct is NOT modified; all metric computation uses local
+    % radian copies. Caller uses aligned struct in its native unit for plots.
+    switch q2_unit
+        case 'rev', scale = 2 * pi;
+        case 'deg', scale = pi / 180;
+        case 'rad', scale = 1;
+        otherwise,  scale = 2 * pi;  % default: treat unknown unit as rev
+    end
+    hw_q2_rad  = aligned.hw_q2  * scale;
+    sim_q2_rad = aligned.sim_q2 * scale;
+    t          = aligned.t;
+
+    % Derived constants
+    tol_rad = cfg.swingup_tolerance_deg * pi / 180;   % 2 deg = 0.0349 rad
+    Ts_est  = median(diff(t));                         % actual sample period [s]
+    N_hold  = round(cfg.swingup_hold_time / Ts_est);  % samples for 1-second hold
+    N_part  = 10;          % consecutive-sample filter for participation (METR-02)
+    epsilon = 1e-3;        % denominator guard ~3x sensor noise floor [rad] (D-13)
+
+    % --- METR-02 / D-14: Participation ----------------------------------
+    % Noise-robust check: |q2| > pi/2 for at least 10 consecutive samples.
+    part_mask = abs(hw_q2_rad) > cfg.participation_threshold;
+    part_idx  = first_sustained_idx(part_mask, N_part);
+    metrics.participation = ~isempty(part_idx);
+
+    % --- METR-01 / D-03/D-04/D-05: Swingup success and time ------------
+    % Both +pi and -pi count as upright (abs(q2) handles sign, D-05).
+    % Time is backdated to the ENTRY of the first qualifying 1-second window
+    % (D-04), not just the first crossing.
+    band_mask = abs(abs(hw_q2_rad) - pi) < tol_rad;
+    entry_idx = first_sustained_idx(band_mask, N_hold);
+    metrics.swingup_success = ~isempty(entry_idx);
+    if metrics.swingup_success
+        metrics.swingup_time = t(entry_idx);  % D-04: entry time of sustained hold
+    else
+        metrics.swingup_time = NaN;
+    end
+
+    % --- METR-04/05/06/07 + D-09/D-10/D-11: SMAPE ----------------------
+    % D-09 hybrid window: max(5s, time_to_first_90deg).
+    % D-10: never reached pi/2 -> ineligible, skip SMAPE entirely.
+    idx_90 = find(abs(hw_q2_rad) > pi/2, 1, 'first');
+
+    if isempty(idx_90)
+        % D-10: |q2| never reached pi/2 -- attempt ineligible for SMAPE
+        metrics.smape_eligible = false;
+        metrics.smape          = NaN;
+        metrics.smape_window_s = NaN;
+    else
+        % D-09: extend window beyond 5s if first 90deg crossing is later
+        t_win_end   = max(cfg.smape_fixed_duration, t(idx_90));
+        win_end_idx = find(t >= t_win_end, 1, 'first');
+        if isempty(win_end_idx)
+            win_end_idx = numel(t);  % data shorter than window -- use all
+        end
+        hw_win  = hw_q2_rad(1:win_end_idx);
+        sim_win = sim_q2_rad(1:win_end_idx);
+        metrics.smape_eligible = true;
+        metrics.smape          = compute_smape_angular(hw_win, sim_win, epsilon);
+        metrics.smape_window_s = t(win_end_idx);
+    end
+
+    % --- D-08: Compact one-liner diagnostic after each attempt ----------
+    if metrics.swingup_success
+        t_str = sprintf('t=%.2fs', metrics.swingup_time);
+    else
+        t_str = 't=N/A';
+    end
+    if metrics.smape_eligible && ~isnan(metrics.smape)
+        s_str = sprintf('SMAPE=%.1f%%', metrics.smape);
+    elseif metrics.smape_eligible
+        s_str = 'SMAPE=NaN';
+    else
+        s_str = 'SMAPE=N/A';
+    end
+    fprintf('Metrics: swingup=%s %s %s participation=%s\n', ...
+        yesno(metrics.swingup_success), t_str, s_str, ...
+        yesno(metrics.participation));
 end
 
 %[appendix]{"version":"1.0"}

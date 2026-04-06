@@ -271,6 +271,12 @@ T = compute_leaderboard(session, cfg);
 %[text] **Step 3:** Display leaderboard (D-10, D-11)
 disp_leaderboard(T, session, cfg);
 
+%[text] **Step 4:** Export results to CSV and xlsx (D-13, OUTP-02)
+export_results(T, cfg, session);
+
+%[text] **Step 5:** Score breakdown bar chart (D-12)
+plot_score_breakdown(T, cfg);
+
 fprintf('\nSession state is in workspace variable "session".\n');
 fprintf('Leaderboard table is in workspace variable "T".\n');
 
@@ -1256,6 +1262,98 @@ function disp_leaderboard(T, session, cfg)
         fprintf('  Total points  : %.1f / 5\n', row.TotalPoints);
     end
     fprintf('\n');
+end
+
+%[text] **export\_results** -- Auto-saves the leaderboard table to CSV and xlsx in
+%[text] the configured export directory with timestamped filenames (D-13). Both stepper
+%[text] and BLDC teams are included; BLDC Rank column is NaN (D-14). The xlsx write
+%[text] is wrapped in try/catch in case the file is locked by Excel. Also saves
+%[text] the full session struct to .mat for post-hoc inspection.
+
+function export_results(T, cfg, session)
+%EXPORT_RESULTS Auto-save leaderboard table to CSV, xlsx, and .mat.
+%   EXPORT\_RESULTS(T, cfg, session) creates the export directory if needed,
+%   generates a timestamped filename, writes CSV (always), xlsx (with
+%   try/catch for locked-file robustness, T-04-03), and saves the full
+%   session struct and table to .mat for post-hoc inspection.
+%   Both stepper and BLDC rows are included; BLDC Rank column is NaN (D-14).
+
+    % Create export directory if it does not exist
+    if ~exist(cfg.export_dir, 'dir')
+        mkdir(cfg.export_dir);
+    end
+
+    % Timestamped filename using datetime API (not legacy datestr -- Research Pitfall 4)
+    timestamp = char(datetime('now', 'Format', 'yyyyMMdd_HHmm'));
+    base = fullfile(cfg.export_dir, sprintf('%s_%s', cfg.export_stem, timestamp));
+
+    % CSV export (always succeeds -- reliable fallback)
+    writetable(T, [base '.csv']);
+    fprintf('Saved: %s\n', [base '.csv']);
+
+    % xlsx export with try/catch (T-04-03: file may be locked by Excel)
+    try
+        writetable(T, [base '.xlsx']);
+        fprintf('Saved: %s\n', [base '.xlsx']);
+    catch e
+        warning('scorer:xlsxfail', ...
+            'xlsx export failed: %s\nClose Excel and retry. CSV was saved.', ...
+            e.message);
+    end
+
+    % Save session struct and table to .mat for post-hoc inspection
+    mat_file = [base '.mat'];
+    save(mat_file, 'session', 'T');
+    fprintf('Saved: %s\n', mat_file);
+end
+
+%[text] **plot\_score\_breakdown** -- Creates a grouped bar chart showing the score
+%[text] breakdown per team (stepper + BLDC). Three bar groups per team: TimePoints,
+%[text] SMAPEPoints, and ParticipationPoint (D-12).
+
+function plot_score_breakdown(T, cfg)
+%PLOT_SCORE_BREAKDOWN Grouped bar chart of score components for all teams.
+%   PLOT\_SCORE\_BREAKDOWN(T, cfg) builds an N\_teams x 3 score matrix from
+%   the leaderboard table and displays a grouped bar chart with one bar per
+%   score component (TimePoints, SMAPEPoints, ParticipationPoint). Total
+%   points are annotated above each team's bar group. (D-12, OUTP-05)
+
+    % Build score matrix: N_teams x 3
+    score_matrix = [T.TimePoints, T.SMAPEPoints, T.ParticipationPoint];
+
+    % Create figure
+    fig = figure('Name', 'Score Breakdown', 'NumberTitle', 'off'); %#ok<NASGU>
+
+    % Grouped bar chart
+    b = bar(score_matrix, 'grouped');
+
+    % Color scheme
+    b(1).FaceColor = [0.2, 0.6, 0.9];  % blue  -- time points
+    b(2).FaceColor = [0.9, 0.5, 0.1];  % orange -- SMAPE points
+    b(3).FaceColor = [0.3, 0.8, 0.3];  % green  -- participation
+
+    % x-axis team labels
+    set(gca, 'XTickLabel', cellstr(T.Team), 'XTickLabelRotation', 15);
+
+    % Axis labels and title
+    ylabel('Points');
+    title('Competition Score Breakdown');
+
+    % Legend
+    legend({'Time Points', 'SMAPE Points', 'Participation'}, ...
+           'Location', 'northeast');
+
+    % Grid
+    grid on;
+
+    % Annotate total points above each team's bar group
+    for i = 1:height(T)
+        total = T.TotalPoints(i);
+        text(i, max(score_matrix(i, :)) + 0.2, ...
+             sprintf('%.1f', total), ...
+             'HorizontalAlignment', 'center', ...
+             'FontWeight', 'bold');
+    end
 end
 
 %[appendix]{"version":"1.0"}

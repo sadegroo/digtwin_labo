@@ -60,7 +60,9 @@ Plans:
   3. Swingup time is measured from aligned t=0 to the first sustained ±π crossing on the hardware signal
   4. SMAPE is computed using angular difference formula to handle wrapping near ±π, with samples excluded where the denominator is below epsilon (1e-3 rad)
   5. SMAPE window mode is selectable from `cfg` as `'fixed'`, `'angle'`, or `'swingup'`; the chosen mode is applied consistently across all teams
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 03-01-PLAN.md — compute_metrics local function (swingup detection, participation, SMAPE) and session loop wiring
 
 ### Phase 4: Scoring and Output
 **Goal**: When the scorer finalizes the session, the script applies the full scoring rubric across the accumulated session state, produces a ranked leaderboard table, exports to CSV and Excel, and prints per-team diagnostic summaries that make grades defensible
@@ -83,6 +85,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. SDI Loading and Session Loop | 2/2 | Complete   | 2026-04-02 |
-| 2. Signal Selection, Alignment, and Per-File Plots | 0/2 | Planned | - |
-| 3. Metric Computation | 0/? | Not started | - |
+| 2. Signal Selection, Alignment, and Per-File Plots | 2/2 | Complete | 2026-04-03 |
+| 3. Metric Computation | 0/1 | Planned | - |
 | 4. Scoring and Output | 0/? | Not started | - |

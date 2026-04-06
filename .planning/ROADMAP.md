@@ -77,8 +77,8 @@ Plans:
   6. All tunable parameters (thresholds, SMAPE window mode, angle tolerances, team names, team types) are defined in a `cfg` struct at the top of the script
 **Plans:** 2 plans
 Plans:
-- [ ] 04-01-PLAN.md — Scoring rubric core: cfg fields, best-per-metric aggregation, dense ranking, BLDC band scoring, leaderboard table, diagnostics display
-- [ ] 04-02-PLAN.md — CSV/xlsx export, grouped bar chart, and end-to-end human verification
+- [x] 04-01-PLAN.md — Scoring rubric core: cfg fields, best-per-metric aggregation, dense ranking, BLDC band scoring, leaderboard table, diagnostics display
+- [x] 04-02-PLAN.md — CSV/xlsx export, grouped bar chart, and end-to-end human verification
 
 ## Progress
 

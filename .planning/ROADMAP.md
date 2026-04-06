@@ -13,9 +13,10 @@ A single MATLAB Live Script (`scripts/score_competition.m`) built in four data-f
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: SDI Loading and Session Loop** - Incremental file-by-file loading with team assignment, session state accumulation, and finalize command (completed 2026-04-02)
-- [ ] **Phase 2: Signal Selection, Alignment, and Per-File Plots** - Interactive signal mapping, hysteresis start-time detection, t=0 alignment, and immediate overlay plot per attempt
-- [ ] **Phase 3: Metric Computation** - Swingup success, swingup time, and SMAPE with angle-wrapping and window guards
-- [ ] **Phase 4: Scoring and Output** - Rubric application at finalization, leaderboard table, CSV/Excel export, and diagnostic printouts
+- [x] **Phase 2: Signal Selection, Alignment, and Per-File Plots** - Interactive signal mapping, hysteresis start-time detection, t=0 alignment, and immediate overlay plot per attempt (completed 2026-04-03)
+- [x] **Phase 3: Metric Computation** - Swingup success, swingup time, and SMAPE with angle-wrapping and window guards (completed 2026-04-06)
+- [x] **Phase 4: Scoring and Output** - Rubric application at finalization, leaderboard table, CSV/Excel export, and diagnostic printouts (completed 2026-04-06)
+- [ ] **Phase 5: Milestone Cleanup & Tech Debt** - Update stale documentation artifacts, remove dead cfg field, add missing try/catch guards
 
 ## Phase Details
 
@@ -80,6 +81,19 @@ Plans:
 - [x] 04-01-PLAN.md — Scoring rubric core: cfg fields, best-per-metric aggregation, dense ranking, BLDC band scoring, leaderboard table, diagnostics display
 - [x] 04-02-PLAN.md — CSV/xlsx export, grouped bar chart, and end-to-end human verification
 
+### Phase 5: Milestone Cleanup & Tech Debt
+**Goal**: Close all tech debt items identified by the v1.0 milestone audit — update stale documentation artifacts, remove dead configuration fields, and add missing error handling
+**Depends on**: Phase 4
+**Requirements**: (none — cleanup phase, no new requirements)
+**Gap Closure**: Closes tech debt from v1.0-MILESTONE-AUDIT.md
+**Success Criteria** (what must be TRUE):
+  1. All 16 verified requirement checkboxes in REQUIREMENTS.md are checked off (METR-01..04, METR-06..07, SCOR-01..06, OUTP-01, OUTP-02, OUTP-04, OUTP-05)
+  2. REQUIREMENTS.md traceability table shows Complete for all verified requirements
+  3. `cfg.smape_window` legacy field is either removed or clearly documented as superseded by D-09
+  4. Finalization Steps 2-3 (compute_leaderboard, disp_leaderboard) have try/catch wrappers matching Steps 1, 4, 5
+  5. Phase 1, 2, 4 SUMMARY frontmatter includes `requirements_completed` field
+**Plans:** 0 plans
+
 ## Progress
 
 **Execution Order:**
@@ -89,5 +103,6 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. SDI Loading and Session Loop | 2/2 | Complete   | 2026-04-02 |
 | 2. Signal Selection, Alignment, and Per-File Plots | 2/2 | Complete | 2026-04-03 |
-| 3. Metric Computation | 0/1 | Planned | - |
-| 4. Scoring and Output | 0/2 | Planned | - |
+| 3. Metric Computation | 1/1 | Complete | 2026-04-06 |
+| 4. Scoring and Output | 2/2 | Complete | 2026-04-06 |
+| 5. Milestone Cleanup & Tech Debt | 0/0 | Pending | - |

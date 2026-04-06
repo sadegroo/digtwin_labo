@@ -62,7 +62,7 @@ Plans:
   5. SMAPE window mode is selectable from `cfg` as `'fixed'`, `'angle'`, or `'swingup'`; the chosen mode is applied consistently across all teams
 **Plans:** 1 plan
 Plans:
-- [ ] 03-01-PLAN.md — compute_metrics local function (swingup detection, participation, SMAPE) and session loop wiring
+- [x] 03-01-PLAN.md — compute_metrics local function (swingup detection, participation, SMAPE) and session loop wiring
 
 ### Phase 4: Scoring and Output
 **Goal**: When the scorer finalizes the session, the script applies the full scoring rubric across the accumulated session state, produces a ranked leaderboard table, exports to CSV and Excel, and prints per-team diagnostic summaries that make grades defensible

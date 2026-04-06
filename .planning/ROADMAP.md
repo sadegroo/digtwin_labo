@@ -55,10 +55,10 @@ Plans:
 **Depends on**: Phase 2
 **Requirements**: METR-01, METR-02, METR-03, METR-04, METR-05, METR-06, METR-07
 **Success Criteria** (what must be TRUE):
-  1. Swingup success requires q2 to cross ±π AND hold within ±2° of ±π continuously for at least 1 second; a brief crossing followed by a fall is not counted as success
-  2. Participation is detected when |q2| exceeds π/2 for at least 10 consecutive samples (noise-robust)
-  3. Swingup time is measured from aligned t=0 to the first sustained ±π crossing on the hardware signal
-  4. SMAPE is computed using angular difference formula to handle wrapping near ±π, with samples excluded where the denominator is below epsilon (1e-3 rad)
+  1. Swingup success requires q2 to cross +/-pi AND hold within +/-2deg of +/-pi continuously for at least 1 second; a brief crossing followed by a fall is not counted as success
+  2. Participation is detected when |q2| exceeds pi/2 for at least 10 consecutive samples (noise-robust)
+  3. Swingup time is measured from aligned t=0 to the first sustained +/-pi crossing on the hardware signal
+  4. SMAPE is computed using angular difference formula to handle wrapping near +/-pi, with samples excluded where the denominator is below epsilon (1e-3 rad)
   5. SMAPE window mode is selectable from `cfg` as `'fixed'`, `'angle'`, or `'swingup'`; the chosen mode is applied consistently across all teams
 **Plans:** 1 plan
 Plans:
@@ -75,16 +75,19 @@ Plans:
   4. Output MATLAB table has columns Team, BestSwingupTime, BestSMAPE, TimePoints, SMAPEPoints, ParticipationPoint, TotalPoints, Rank and is exported to both CSV and `.xlsx` at finalization
   5. Per-team diagnostic summary prints N attempts loaded, best time, best SMAPE, and participation status to the command window
   6. All tunable parameters (thresholds, SMAPE window mode, angle tolerances, team names, team types) are defined in a `cfg` struct at the top of the script
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 04-01-PLAN.md — Scoring rubric core: cfg fields, best-per-metric aggregation, dense ranking, BLDC band scoring, leaderboard table, diagnostics display
+- [ ] 04-02-PLAN.md — CSV/xlsx export, grouped bar chart, and end-to-end human verification
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. SDI Loading and Session Loop | 2/2 | Complete   | 2026-04-02 |
 | 2. Signal Selection, Alignment, and Per-File Plots | 2/2 | Complete | 2026-04-03 |
 | 3. Metric Computation | 0/1 | Planned | - |
-| 4. Scoring and Output | 0/? | Not started | - |
+| 4. Scoring and Output | 0/2 | Planned | - |

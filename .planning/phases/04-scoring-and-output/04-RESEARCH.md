@@ -528,19 +528,19 @@ end
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Is `writetable` xlsx reliable without Excel installed on the grading machine?**
+1. **Is `writetable` xlsx reliable without Excel installed on the grading machine?** (RESOLVED)
    - What we know: MATLAB uses a built-in Java-based xlsx writer (Apache POI) that does not require Excel. This has been the case since R2019b.
    - What's unclear: The exact version when this became fully reliable on Windows without Excel.
    - Recommendation: [ASSUMED] Should work on the instructor's Windows 11 machine regardless of Excel installation. Planner should add try/catch as a defensive measure per Pitfall 3.
 
-2. **Should the session struct be saved to `.mat` alongside CSV/xlsx?**
+2. **Should the session struct be saved to `.mat` alongside CSV/xlsx?** (RESOLVED)
    - What we know: This is explicitly listed as Claude's Discretion in CONTEXT.md.
    - What's unclear: User preference.
    - Recommendation: Include it. `save(fullfile(cfg.export_dir, ['session_' timestamp '.mat']), 'session', 'T')` costs nothing and preserves the full session for post-hoc inspection. Flag in planner as a low-cost addition.
 
-3. **Rank column for BLDC in the exported table: `NaN` or empty string?**
+3. **Rank column for BLDC in the exported table: `NaN` or empty string?** (RESOLVED)
    - What we know: D-14 says "NaN or empty". `writetable` exports `NaN` as an empty cell in xlsx and an empty field in CSV.
    - Recommendation: Use `NaN` in the MATLAB table (type double). Let `writetable` handle the empty representation in output files — no special handling needed.
 

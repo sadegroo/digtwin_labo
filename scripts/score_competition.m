@@ -263,7 +263,11 @@ fprintf('SESSION FINALIZED\n');
 fprintf('========================================\n');
 
 %[text] **Step 1:** Per-team diagnostic summary (D-15, OUTP-04)
-print_diagnostics(session, cfg);
+try
+    print_diagnostics(session, cfg);
+catch e
+    fprintf(2, 'Step 1 error (diagnostics): %s\n', e.message);
+end
 
 %[text] **Step 2:** Compute leaderboard table (SCOR-01..06, OUTP-01)
 T = compute_leaderboard(session, cfg);
@@ -272,10 +276,18 @@ T = compute_leaderboard(session, cfg);
 disp_leaderboard(T, session, cfg);
 
 %[text] **Step 4:** Export results to CSV and xlsx (D-13, OUTP-02)
-export_results(T, cfg, session);
+try
+    export_results(T, cfg, session);
+catch e
+    fprintf(2, 'Step 4 error (export): %s\n', e.message);
+end
 
 %[text] **Step 5:** Score breakdown bar chart (D-12)
-plot_score_breakdown(T, cfg);
+try
+    plot_score_breakdown(T, cfg);
+catch e
+    fprintf(2, 'Step 5 error (plot): %s\n', e.message);
+end
 
 fprintf('\nSession state is in workspace variable "session".\n');
 fprintf('Leaderboard table is in workspace variable "T".\n');

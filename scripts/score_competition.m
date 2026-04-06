@@ -255,21 +255,24 @@ while true
 end
 
 %% Finalization
-%[text] Session complete. Mark as finalized and display summary.
+%[text] Session complete. Apply scoring rubric, print diagnostics, display leaderboard.
 
 session.finalized = true;
 fprintf('\n========================================\n');
 fprintf('SESSION FINALIZED\n');
 fprintf('========================================\n');
-fprintf('Teams: %d\n', numel(session.teams));
-for i = 1:numel(session.teams)
-    fprintf('  %s (%s): %d attempt(s)\n', ...
-        session.teams(i).name, ...
-        session.teams(i).type, ...
-        numel(session.teams(i).attempts));
-end
+
+%[text] **Step 1:** Per-team diagnostic summary (D-15, OUTP-04)
+print_diagnostics(session, cfg);
+
+%[text] **Step 2:** Compute leaderboard table (SCOR-01..06, OUTP-01)
+T = compute_leaderboard(session, cfg);
+
+%[text] **Step 3:** Display leaderboard (D-10, D-11)
+disp_leaderboard(T, session, cfg);
+
 fprintf('\nSession state is in workspace variable "session".\n');
-fprintf('Proceed to Phase 3 (metric computation).\n');
+fprintf('Leaderboard table is in workspace variable "T".\n');
 
 function attempt = load_attempt(file)
 %LOAD_ATTEMPT Load a single .mldatx file containing both hw and sim runs.
@@ -1165,6 +1168,94 @@ function T = compute_leaderboard(session, cfg)
               'VariableNames', {'Team', 'BestSwingupTime', 'BestSMAPE', ...
                                 'TimePoints', 'SMAPEPoints', ...
                                 'ParticipationPoint', 'TotalPoints', 'Rank'});
+end
+
+%[text] **print\_diagnostics** -- Prints per-team summary to the command window before
+%[text] the leaderboard: N attempts loaded, best swingup time, best SMAPE, and
+%[text] participation status (OUTP-04, D-15).
+
+function print_diagnostics(session, cfg)
+%PRINT_DIAGNOSTICS Print per-team summary before the leaderboard.
+%   PRINT\_DIAGNOSTICS(session, cfg) iterates over all teams and prints
+%   the number of attempts, best swingup time, best SMAPE, and participation
+%   status to the command window. Reuses aggregate\_best. (OUTP-04, D-15)
+
+    fprintf('\n--- Per-Team Diagnostics ---\n');
+    for i = 1:numel(session.teams)
+        t     = session.teams(i);
+        n_att = numel(t.attempts);
+        [bt, bs, has_p] = aggregate_best(t);
+
+        % Format best time
+        if isnan(bt)
+            time_str = 'N/A';
+        else
+            time_str = sprintf('%.2f s', bt);
+        end
+
+        % Format best SMAPE
+        if isnan(bs)
+            smape_str = 'N/A';
+        else
+            smape_str = sprintf('%.1f%%', bs);
+        end
+
+        fprintf('  %s (%s): %d attempt(s)\n', t.name, t.type, n_att);
+        fprintf('    Best swingup time : %s\n', time_str);
+        fprintf('    Best SMAPE        : %s\n', smape_str);
+        fprintf('    Participation     : %s\n', yesno(has_p));
+    end
+    fprintf('\n');
+end
+
+%[text] **disp\_leaderboard** -- Displays the stepper leaderboard table (D-10) and a
+%[text] separate BLDC summary section below (D-11).
+
+function disp_leaderboard(T, session, cfg)
+%DISP_LEADERBOARD Display the stepper leaderboard table and BLDC summary.
+%   DISP\_LEADERBOARD(T, session, cfg) prints the stepper teams as a MATLAB
+%   table (D-10), then prints a separate BLDC section below with band label,
+%   SMAPE points, participation, and total points (D-11).
+
+    stepper_mask = strcmp({cfg.teams.type}, 'stepper')';
+    bldc_mask    = strcmp({cfg.teams.type}, 'bldc')';
+
+    % --- Stepper leaderboard (D-10) ---
+    fprintf('\n==================== STEPPER LEADERBOARD ====================\n');
+    disp(T(stepper_mask, :));
+
+    % --- BLDC section (D-11) ---
+    if any(bldc_mask)
+        fprintf('\n==================== BLDC TEAM ====================\n');
+        row = T(bldc_mask, :);
+
+        % Format best SMAPE
+        if isnan(row.BestSMAPE)
+            smape_str = 'N/A';
+            band_str  = 'N/A';
+        else
+            smape_val = row.BestSMAPE;
+            smape_str = sprintf('%.1f%%', smape_val);
+            % Determine band label from cfg.bldc_smape_bands
+            bands = cfg.bldc_smape_bands;   % e.g. [40, 80, 120, 160]
+            edges = [0, bands];              % lower edges for label construction
+            band_str = sprintf('%.0f-%.0f%%', edges(end), inf);  % fallback: 160+
+            for k = 1:numel(bands)
+                if smape_val < bands(k)
+                    band_str = sprintf('%.0f-%.0f%%', edges(k), bands(k));
+                    break
+                end
+            end
+        end
+
+        fprintf('  Team          : %s\n', char(row.Team));
+        fprintf('  Best SMAPE    : %s  (band: %s)\n', smape_str, band_str);
+        fprintf('  SMAPE points  : %.1f\n', row.SMAPEPoints);
+        fprintf('  Participation : %s (%.0f pt)\n', ...
+            yesno(row.ParticipationPoint > 0), row.ParticipationPoint);
+        fprintf('  Total points  : %.1f / 5\n', row.TotalPoints);
+    end
+    fprintf('\n');
 end
 
 %[appendix]{"version":"1.0"}

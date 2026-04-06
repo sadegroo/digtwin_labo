@@ -27,6 +27,14 @@ cfg.truncation_margin = 1;  % seconds after q2 reaches upright to truncate signa
 cfg.cmd_keywords = {'accel', 'torque', 'cmd', 'tau', 'ref', 'input'};
 cfg.q2_keywords  = {'q2', 'theta', 'pend', 'angle', 'phi', 'joint2'};
 
+%[text] **Scoring parameters** (Phase 4)
+cfg.time_points       = [2, 1, 0.5, 0];        % stepper time rank: 1st..4th (D-05)
+cfg.smape_points      = [2, 1, 0.5, 0.5];      % stepper SMAPE rank: 1st..4th (D-06)
+cfg.bldc_smape_bands  = [40, 80, 120, 160];     % upper-exclusive SMAPE% band edges (D-07)
+cfg.bldc_smape_pts    = [4, 3, 2, 1, 0];        % points per band (D-07)
+cfg.export_dir        = 'data';                  % output folder (D-13)
+cfg.export_stem       = 'competition_results';   % filename base (D-13)
+
 % Prompt for q2 display unit
 q2_units = {'rev', 'deg', 'rad'};
 [sel, ok] = listdlg('ListString', q2_units, ...
@@ -977,6 +985,186 @@ function metrics = compute_metrics(aligned, cfg, q2_unit)
     fprintf('Metrics: swingup=%s %s %s participation=%s\n', ...
         yesno(metrics.swingup_success), t_str, s_str, ...
         yesno(metrics.participation));
+end
+
+%[text]
+%[text] ---
+%[text] **Local Functions: Scoring and Leaderboard (Phase 4)**
+%[text] These functions implement the competition scoring rubric: best-per-metric
+%[text] aggregation, stepper competitive ranking (sports convention), BLDC absolute
+%[text] band scoring, and leaderboard table construction.
+
+function [best_time, best_smape, has_participation] = aggregate_best(team)
+%AGGREGATE_BEST Select best-per-metric values across all attempts for a team.
+%   [best\_time, best\_smape, has\_participation] = AGGREGATE\_BEST(team) iterates
+%   over team.attempts, extracts the fastest successful swingup time and the
+%   lowest SMAPE-eligible SMAPE value. Returns NaN for metrics with no qualifying
+%   attempt. has\_participation is true if any attempt has participation == true.
+%   Implements D-01, D-02, D-03 (SCOR-01).
+
+    n = numel(team.attempts);
+    times  = NaN(n, 1);
+    smapes = NaN(n, 1);
+    part_flag = false;
+
+    for j = 1:n
+        m = team.attempts{j}.metrics;
+        if isfield(m, 'swingup_success') && m.swingup_success
+            times(j) = m.swingup_time;
+        end
+        if isfield(m, 'smape_eligible') && m.smape_eligible && ~isnan(m.smape)
+            smapes(j) = m.smape;
+        end
+        if isfield(m, 'participation') && m.participation
+            part_flag = true;
+        end
+    end
+
+    best_time  = min(times,  [], 'omitnan');
+    best_smape = min(smapes, [], 'omitnan');
+
+    % Guard: empty or all-NaN arrays return [] from min -- normalize to NaN
+    if isempty(best_time)  || all(isnan(times)),  best_time  = NaN; end
+    if isempty(best_smape) || all(isnan(smapes)), best_smape = NaN; end
+
+    has_participation = part_flag;
+end
+
+function pts = assign_points_dense(values, point_table)
+%ASSIGN_POINTS_DENSE Assign points to competitors using sports-convention dense ranking.
+%   pts = ASSIGN\_POINTS\_DENSE(values, point\_table) assigns points to each
+%   element of values (lower = better; NaN = did not qualify). Tied competitors
+%   share the same rank and same (higher) point value. Dense ranking: ranks
+%   increment by 1 after each distinct value, no gaps (D-04).
+%   point\_table maps rank 1,2,3,... to point values; rank exceeding the table
+%   length receives 0. (SCOR-02, SCOR-03, D-05, D-06)
+
+    N   = numel(values);
+    pts = zeros(N, 1);
+
+    valid = ~isnan(values);
+    if ~any(valid)
+        return
+    end
+
+    v              = values(valid);
+    [sorted_v, order] = sort(v, 'ascend');
+
+    % Build dense ranks (ties share same rank, no gaps after tie)
+    ranks = ones(numel(v), 1);
+    for k = 2:numel(sorted_v)
+        if sorted_v(k) == sorted_v(k-1)
+            ranks(k) = ranks(k-1);   % tie: same rank (D-04)
+        else
+            ranks(k) = ranks(k-1) + 1;  % dense increment
+        end
+    end
+
+    % Map ranks to points
+    rank_pts = zeros(numel(v), 1);
+    for k = 1:numel(v)
+        r = ranks(k);
+        if r <= numel(point_table)
+            rank_pts(k) = point_table(r);
+        else
+            rank_pts(k) = 0;
+        end
+    end
+
+    % Unsort: write back in original order
+    pts_valid         = zeros(numel(v), 1);
+    pts_valid(order)  = rank_pts;
+    pts(valid)        = pts_valid;
+end
+
+function pts = score_bldc_smape(smape_pct, bands, band_pts)
+%SCORE_BLDC_SMAPE Absolute band scoring for the BLDC team SMAPE.
+%   pts = SCORE\_BLDC\_SMAPE(smape\_pct, bands, band\_pts) returns the point
+%   value for the given SMAPE percentage using upper-exclusive band boundaries.
+%   bands = [40, 80, 120, 160]; band\_pts = [4, 3, 2, 1, 0].
+%   If smape\_pct < bands(k), return band\_pts(k) (upper-exclusive, D-07).
+%   If smape\_pct is NaN or >= all bands, return band\_pts(end).
+
+    if isnan(smape_pct)
+        pts = 0;
+        return
+    end
+
+    pts = band_pts(end);   % default: 160+% case
+    for k = 1:numel(bands)
+        if smape_pct < bands(k)
+            pts = band_pts(k);
+            return
+        end
+    end
+end
+
+function T = compute_leaderboard(session, cfg)
+%COMPUTE_LEADERBOARD Compute full scoring table for all teams.
+%   T = COMPUTE\_LEADERBOARD(session, cfg) aggregates best-per-metric values
+%   for each team, assigns stepper competitive points (dense ranking), assigns
+%   BLDC absolute band points, adds participation points, computes totals and
+%   stepper ranks. Returns an 8-column MATLAB table. (SCOR-01..06, OUTP-01,
+%   D-01..D-09)
+
+    N = numel(session.teams);
+
+    % Preallocate
+    team_names  = {cfg.teams.name}';
+    team_types  = {cfg.teams.type}';
+    best_times  = NaN(N, 1);
+    best_smapes = NaN(N, 1);
+    part_flags  = false(N, 1);
+    time_pts    = zeros(N, 1);
+    smape_pts   = zeros(N, 1);
+    part_pts    = zeros(N, 1);
+
+    % Aggregate best values for each team
+    for i = 1:N
+        [best_times(i), best_smapes(i), part_flags(i)] = ...
+            aggregate_best(session.teams(i));
+        part_pts(i) = double(part_flags(i));  % 1pt if any participation (SCOR-05, D-09)
+    end
+
+    % Stepper competitive ranking (SCOR-02, SCOR-03)
+    stepper_mask = strcmp(team_types, 'stepper');
+    time_pts(stepper_mask)  = assign_points_dense( ...
+        best_times(stepper_mask),  cfg.time_points);
+    smape_pts(stepper_mask) = assign_points_dense( ...
+        best_smapes(stepper_mask), cfg.smape_points);
+
+    % BLDC absolute band scoring (SCOR-04, D-07)
+    bldc_mask = strcmp(team_types, 'bldc');
+    for i = find(bldc_mask)'
+        smape_pts(i) = score_bldc_smape( ...
+            best_smapes(i), cfg.bldc_smape_bands, cfg.bldc_smape_pts);
+    end
+
+    % Total points (SCOR-06)
+    total_pts = time_pts + smape_pts + part_pts;
+
+    % Stepper ranks on total (descending); BLDC rank stays NaN (D-08)
+    ranks = NaN(N, 1);
+    stepper_totals = total_pts(stepper_mask);
+    [sorted_tot, ord] = sort(stepper_totals, 'descend');
+    stepper_ranks = ones(sum(stepper_mask), 1);
+    for k = 2:numel(sorted_tot)
+        if sorted_tot(k) == sorted_tot(k-1)
+            stepper_ranks(k) = stepper_ranks(k-1);
+        else
+            stepper_ranks(k) = stepper_ranks(k-1) + 1;
+        end
+    end
+    rank_unsorted             = zeros(sum(stepper_mask), 1);
+    rank_unsorted(ord)        = stepper_ranks;
+    ranks(stepper_mask)       = rank_unsorted;
+
+    % Build output table (OUTP-01)
+    T = table(string(team_names), best_times, best_smapes, ...
+              time_pts, smape_pts, part_pts, total_pts, ranks, ...
+              'VariableNames', {'Team', 'BestSwingupTime', 'BestSMAPE', ...
+                                'TimePoints', 'SMAPEPoints', ...
+                                'ParticipationPoint', 'TotalPoints', 'Rank'});
 end
 
 %[appendix]{"version":"1.0"}

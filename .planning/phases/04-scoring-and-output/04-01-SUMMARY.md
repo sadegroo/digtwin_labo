@@ -40,7 +40,7 @@ metrics:
   tasks_completed: 2
   tasks_total: 2
   files_modified: 1
-requirements_satisfied:
+requirements_completed:
   - SCOR-01
   - SCOR-02
   - SCOR-03

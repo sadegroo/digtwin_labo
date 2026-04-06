@@ -36,6 +36,8 @@ key-decisions:
   - "session progress printed after every successful append (scorer situational awareness)"
   - "team_names extracted from cfg.teams before loop (avoids repeated extraction in loop body)"
 
+requirements-completed: [LOAD-04, LOAD-05, LOAD-06]
+
 # Metrics
 duration: 1min
 completed: 2026-04-02

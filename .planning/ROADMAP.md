@@ -92,12 +92,14 @@ Plans:
   3. `cfg.smape_window` legacy field is either removed or clearly documented as superseded by D-09
   4. Finalization Steps 2-3 (compute_leaderboard, disp_leaderboard) have try/catch wrappers matching Steps 1, 4, 5
   5. Phase 1, 2, 4 SUMMARY frontmatter includes `requirements_completed` field
-**Plans:** 0 plans
+**Plans:** 1 plan
+Plans:
+- [ ] 05-01-PLAN.md — Remove cfg.smape_window, add try/catch to finalization Steps 2-3, backfill requirements_completed in Phase 1/2/4 SUMMARYs
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -105,4 +107,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 2. Signal Selection, Alignment, and Per-File Plots | 2/2 | Complete | 2026-04-03 |
 | 3. Metric Computation | 1/1 | Complete | 2026-04-06 |
 | 4. Scoring and Output | 2/2 | Complete | 2026-04-06 |
-| 5. Milestone Cleanup & Tech Debt | 0/0 | Pending | - |
+| 5. Milestone Cleanup & Tech Debt | 0/1 | Planned | - |

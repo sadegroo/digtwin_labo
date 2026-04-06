@@ -18,8 +18,7 @@ cfg.teams(3) = struct('name', 'Team Theta',  'type', 'stepper');
 cfg.teams(4) = struct('name', 'Team Pi',     'type', 'stepper');
 cfg.teams(5) = struct('name', 'Team Omega',  'type', 'stepper');
 
-cfg.smape_window           = 'fixed';   % legacy; Phase 3 uses D-09 hybrid: max(5s, t_to_90deg)
-cfg.smape_fixed_duration   = 5;         % seconds (Phase 3)
+cfg.smape_fixed_duration   = 5;         % seconds — D-09 hybrid window: max(this, t_to_first_90deg)
 cfg.swingup_hold_time      = 1.0;       % seconds pendulum must hold at +/-pi (Phase 3)
 cfg.swingup_tolerance_deg  = 2;         % degrees tolerance around +/-pi (Phase 3)
 cfg.participation_threshold = pi/2;     % rad -- |q2| must exceed this (Phase 3)
@@ -270,10 +269,19 @@ catch e
 end
 
 %[text] **Step 2:** Compute leaderboard table (SCOR-01..06, OUTP-01)
-T = compute_leaderboard(session, cfg);
+try
+    T = compute_leaderboard(session, cfg);
+catch e
+    fprintf(2, 'Step 2 error (leaderboard): %s\n', e.message);
+    T = table();
+end
 
 %[text] **Step 3:** Display leaderboard (D-10, D-11)
-disp_leaderboard(T, session, cfg);
+try
+    disp_leaderboard(T, session, cfg);
+catch e
+    fprintf(2, 'Step 3 error (display): %s\n', e.message);
+end
 
 %[text] **Step 4:** Export results to CSV and xlsx (D-13, OUTP-02)
 try

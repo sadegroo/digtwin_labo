@@ -24,6 +24,7 @@ metrics:
   completed: "2026-04-03T09:05:31Z"
   tasks_completed: 2
   files_modified: 1
+requirements-completed: [SIGM-01, SIGM-02, SIGM-03, ALGN-01, ALGN-02]
 ---
 
 # Phase 02 Plan 01: Signal Selection Functions and Time Alignment Summary

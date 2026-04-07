@@ -2,6 +2,39 @@
 
 A MATLAB/Simulink project for a rotary RR (2-DOF) inverted pendulum (STEVAL-EDUKIT01). Covers the full pipeline: symbolic derivation of kinematics/dynamics, Simulink simulation, LQR controller design, UKF state estimation, energy-based swing-up, embedded C code generation (Raspberry Pi / STM32), and real hardware deployment.
 
+## Getting Started
+
+1. **Open the project** in MATLAB:
+   ```matlab
+   openProject('digtwin_labo.prj')
+   ```
+
+### Simulation vs Hardware
+
+The Simulink models use a **variant subsystem** that automatically switches between simulation and hardware mode. When you run the model normally (play button), it uses the simulated plant. When you deploy to the Raspberry Pi in **external mode** (Hardware tab), the variant block switches to the real SPI interface — no manual configuration needed.
+
+### Stepper
+
+The stepper model `RRpendulum_digtwin.slx` loads `RRpendulum_Parameters_num.m` automatically via a model callback — just open and simulate:
+
+   ```matlab
+   open_system('models/RRpendulum_digtwin.slx')
+   sim('RRpendulum_digtwin')
+   ```
+
+### BLDC
+
+1. **Generate all parameters** (symbolic derivation, physical parameters, controller, observer, and swing-up design):
+   ```matlab
+   run('scripts/BLDC/RRpendulum_BLDC_genAllParams.m')
+   ```
+
+2. **Simulate**:
+   ```matlab
+   open_system('models/BLDC/RRpendulum_digtwin_FSFB_BLDC.slx')
+   sim('RRpendulum_digtwin_FSFB_BLDC')
+   ```
+
 ## Project Overview
 
 This digital twin framework enables:
@@ -318,39 +351,6 @@ After finalization, results are saved to `data/` with timestamped filenames:
 - STEVAL-EDUKIT01 or compatible 2-DOF pendulum
 - Raspberry Pi with SPI interface
 - STM32F401-based motor controller with ST MCSDK firmware
-
-## Getting Started
-
-1. **Open the project** in MATLAB:
-   ```matlab
-   openProject('digtwin_labo.prj')
-   ```
-
-2. **Run symbolic derivation** (once per session):
-   ```matlab
-   run('scripts/RRpendulum_forkin_dyn_noimage.m')
-   ```
-
-3. **Load parameters**:
-   ```matlab
-   run('scripts/RRpendulum_Parameters_num_BLDC.m')
-   ```
-
-4. **Design controller** (e.g., LQR):
-   ```matlab
-   run('scripts/RRpendulum_FSFB_controldesign_torque.m')
-   ```
-
-5. **Design observer**:
-   ```matlab
-   run('scripts/RRpendulum_UKF_design.m')
-   ```
-
-6. **Simulate**:
-   ```matlab
-   open_system('models/RRpendulum_digtwin_FSFB_BLDC.slx')
-   sim('RRpendulum_digtwin_FSFB_BLDC')
-   ```
 
 ## License
 

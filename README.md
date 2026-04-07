@@ -45,12 +45,14 @@ All scripts use: `z = [q1; v1; q2; v2]` where q = angle (rad), v = angular veloc
 | `RRpendulum_digtwin_BLDC.slx` | BLDC motor torque control interface |
 | `RRpendulum_digtwin_FSFB.slx` | Full state feedback controller (kinematic mode) |
 | `RRpendulum_digtwin_FSFB_BLDC.slx` | **Primary model**: UKF observer + LQR + swing-up, codegen-ready |
+| `RRpendulum_digtwin_FSFB_BLDC_noUI.slx` | BLDC state feedback without UI (headless codegen) |
 | `RRpendulum_digtwin_swingup.slx` | Standalone swing-up control |
+| `RRpendulum_digtwin_swingup_buttonctrl.slx` | Button-controlled swing-up (manual trigger via hardware button) |
 | `RRpendulum_forcedmovement.slx` | Forced oscillation analysis |
 
 ### Hardware Interface
 
-`resources/lib/digtwin_labo_lib.slx` contains the shared hardware interface library. It **must stay synchronized with STM32 MCU firmware** (`invpend_BLDC`). Torque commands are sent in milli-Nm via SPI; the MCU converts to Iq current internally.
+`resources/lib/digtwin_labo_lib.slx` contains the shared hardware interface library. It **must stay synchronized with STM32 MCU firmware** (`invpend_BLDC`). Torque commands are sent in milli-Nm via SPI; the MCU converts to Iq current internally. SPI frames include CRC error checking for robust communication with the latest pendulum firmware.
 
 ## Scripts
 
@@ -173,10 +175,13 @@ All scripts use: `z = [q1; v1; q2; v2]` where q = angle (rad), v = angular veloc
 
 | Script | Purpose |
 |--------|---------|
-| `RRpendulum_FSFB_controldesign_accel.m` | LQR design in acceleration-control formulation |
+| `score_competition.m` | Competition scoring tool (see [Competition Scoring](#competition-scoring) below) |
+| `RRpendulum_FSFB_controldesign_accel.m` | LQR design with acceleration-command interface (BLDC variant) |
+| `RRpendulum_FSFB_sensitivity_analysis.m` | Sensitivity analysis of LQR gains to parameter variations |
 | `RRpendulum_decoupledLuenberger.m` | Decoupled Luenberger observer design (superseded by UKF) |
 | `RRpendulum_kinctrl_numericalsetup.m` | Legacy parameter setup for kinematic control models |
 | `RRpendulum_Parameters_num.m` | Minimal numerical parameters (non-BLDC variant) |
+| `analyze_ZOH_performance.m` | Zero-order hold discretization performance analysis |
 
 ## Core Functions (`resources/functions/`)
 
@@ -230,6 +235,73 @@ STM32F401 (invpend_BLDC firmware)
 - **STM32F401** - Motor control (FOC, current sensing, encoder) via ST MCSDK
 - **Raspberry Pi** - High-level control (LQR, UKF, swing-up) via Simulink Embedded Coder
 - **STEVAL-EDUKIT01** - STMicroelectronics educational robotics kit
+
+## Competition Scoring
+
+`scripts/score_competition.m` is a MATLAB scoring tool for the digital twin swingup
+competition. It processes team submissions (`.mldatx` files from Simulink Data Inspector),
+validates successful swingups, computes swingup times and simulation accuracy (SMAPE),
+and produces a ranked leaderboard with plots.
+
+### Prerequisites
+
+- MATLAB project open (`openProject('digtwin_labo.prj')` -- the script checks automatically)
+- Team `.mldatx` files ready (each file contains one hardware run and one simulation run)
+
+### Usage Workflow
+
+1. **Run the script:**
+   ```matlab
+   run('scripts/score_competition.m')
+   ```
+
+2. **Select q2 display unit** (rev, deg, or rad) when prompted
+
+3. **Session loop** (repeat for each attempt):
+   - Select a `.mldatx` file via the file dialog
+   - Assign it to a team (5 pre-configured teams)
+   - Select the command signal and q2 signal from the file's signal list
+   - Preview hw/sim overlay and confirm signal selection
+   - Enter time alignment delta (left-shift hardware signal, in seconds)
+   - Type `done` to finalize, or press Enter to load the next file
+
+4. **Finalization** (automatic after `done`):
+   - Per-team diagnostic summary (swingup times, SMAPE values)
+   - Ranked leaderboard table
+   - CSV, xlsx, and .mat export to `data/`
+   - Score breakdown bar chart
+
+### Configuration
+
+Edit the `cfg` struct at the top of the script to adjust:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `cfg.teams` | 5 teams (1 BLDC + 4 stepper) | Team names and motor types |
+| `cfg.smape_fixed_duration` | 5 s | SMAPE comparison window duration |
+| `cfg.swingup_hold_time` | 1.0 s | Time pendulum must hold upright |
+| `cfg.swingup_tolerance_deg` | 2 deg | Tolerance around upright position |
+| `cfg.time_points` | [2, 1, 0.5, 0] | Stepper time-ranking points (1st to 4th) |
+| `cfg.smape_points` | [2, 1, 0.5, 0.5] | Stepper SMAPE-ranking points (1st to 4th) |
+| `cfg.bldc_smape_bands` | [40, 80, 120, 160] | BLDC absolute SMAPE% band edges |
+| `cfg.bldc_smape_pts` | [4, 3, 2, 1, 0] | Points per SMAPE band |
+| `cfg.export_dir` | `data` | Output directory for results |
+
+### Output Files
+
+After finalization, results are saved to `data/` with timestamped filenames:
+
+| File | Contents |
+|------|----------|
+| `competition_results_YYYYMMDD_HHMM.csv` | Leaderboard table (CSV) |
+| `competition_results_YYYYMMDD_HHMM.xlsx` | Leaderboard table (Excel) |
+| `competition_results_YYYYMMDD_HHMM.mat` | Full session struct and table for post-hoc analysis |
+
+### Scoring Rules
+
+- **Stepper teams** (4 teams): Ranked competitively on swingup time and SMAPE. Best result per metric across multiple attempts is used.
+- **BLDC team** (1 team): Scored on absolute SMAPE bands (not ranked against stepper teams).
+- **Participation point**: 1 point awarded if the pendulum exceeds 90 degrees during any attempt.
 
 ## Requirements
 

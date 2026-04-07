@@ -885,15 +885,15 @@ function idx = first_sustained_idx(mask, N)
 end
 
 function smape = compute_smape_angular(hw_rad, sim_rad, epsilon)
-%COMPUTE_SMAPE_ANGULAR Angular SMAPE with wrapping and denominator guard.
+%COMPUTE_SMAPE_ANGULAR Angular SMAPE for directed (unwrapped) angles.
 %   smape = COMPUTE\_SMAPE\_ANGULAR(hw\_rad, sim\_rad, epsilon) computes SMAPE
-%   using the angular difference formula mod(hw-sim+pi, 2\*pi)-pi for the
-%   numerator (handles wrapping near +/-pi per METR-07/D-12).  Samples where
-%   the denominator (|hw|+|sim|)/2 < epsilon are excluded (METR-06/D-13).
+%   using the absolute difference of directed angles (no wraparound —
+%   q2 is unwrapped, so -pi and +pi are genuinely 2*pi apart).  Samples
+%   where the denominator (|hw|+|sim|)/2 < epsilon are excluded (METR-06/D-13).
 %   Returns a percentage value, or NaN if no valid samples exist.
 
-    % Angular difference numerator (METR-07, D-12)
-    num   = abs(mod(hw_rad - sim_rad + pi, 2*pi) - pi);
+    % Directed angle difference numerator (METR-07, D-12)
+    num   = abs(hw_rad - sim_rad);
 
     % Symmetric denominator
     denom = (abs(hw_rad) + abs(sim_rad)) / 2;

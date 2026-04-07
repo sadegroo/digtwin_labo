@@ -4,8 +4,8 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 4 context gathered
-last_updated: "2026-04-06T16:18:13.014Z"
-last_activity: 2026-04-06
+last_updated: "2026-04-07T09:15:44.801Z"
+last_activity: 2026-04-07 - Completed quick task 260407-fn4: Update README.md
 progress:
   total_phases: 5
   completed_phases: 5
@@ -91,9 +91,10 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260402-ux4 | Fix single-file loading: both runs in one mldatx | 2026-04-02 | 07d7a11 | [260402-ux4-fix-single-file-loading-both-runs-in-one](./quick/260402-ux4-fix-single-file-loading-both-runs-in-one/) |
+| 260407-fn4 | Update README with competition scoring, new models, scripts, CRC note | 2026-04-07 | 8d62d41 | [260407-fn4-update-readme-md-based-on-all-edits-sinc](./quick/260407-fn4-update-readme-md-based-on-all-edits-sinc/) |
 
 ## Session Continuity
 
-Last session: 2026-04-06T10:30:50.020Z
-Stopped at: Phase 4 context gathered
+Last session: 2026-04-07T09:20:59Z
+Stopped at: Completed 260407-fn4 quick task
 Resume file: .planning/phases/04-scoring-and-output/04-CONTEXT.md

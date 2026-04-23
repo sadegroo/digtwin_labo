@@ -66,7 +66,7 @@ digtwin_labo/
 
 All scripts use: `z = [q1; v1; q2; v2]` where q = angle (rad), v = angular velocity (rad/s).
 - `q1`: horizontal rotation (driven joint)
-- `q2`: pendulum angle (free joint, `q2 = pi` is downward rest)
+- `q2`: pendulum angle (free joint, `q2 = 0` is downward rest)
 
 ## Simulink Models
 
@@ -80,7 +80,6 @@ All scripts use: `z = [q1; v1; q2; v2]` where q = angle (rad), v = angular veloc
 | `RRpendulum_digtwin_FSFB_BLDC.slx` | **Primary model**: UKF observer + LQR + swing-up, codegen-ready |
 | `RRpendulum_digtwin_FSFB_BLDC_noUI.slx` | BLDC state feedback without UI (headless codegen) |
 | `RRpendulum_digtwin_swingup.slx` | Standalone swing-up control |
-| `RRpendulum_digtwin_swingup_buttonctrl.slx` | Button-controlled swing-up (manual trigger via hardware button) |
 | `RRpendulum_forcedmovement.slx` | Forced oscillation analysis |
 
 ### Hardware Interface

@@ -16,8 +16,6 @@ data_dir = fullfile(prj.RootFolder, 'data');
 
 %% Load parameters and existing FSFB design
 load(fullfile(data_dir, 'RRpendulum_params_BLDC.mat'), 'params');
-load(fullfile(data_dir, 'FSFB_torque_design.mat'), 'design');
-
 m   = params.mech.m;       % 0.0126 kg
 l   = params.mech.l;       % 0.253 m
 r   = params.mech.r;       % 0.151 m
@@ -40,7 +38,7 @@ u_sat = params.act.u_sat; % 0.2 Nm
 Iz1_min = RRpendulum_totalIz1([0; pi], Iz_1, m, r, l);
 Iz1_max = RRpendulum_totalIz1([0; pi/2], Iz_1, m, r, l);
 
-alpha_max = u_sat / Iz1_max;
+alpha_max = u_sat / Iz1_max*0.75;
 fprintf('alpha_max = %.1f rad/s²  (at min inertia %.2e kgm²)\n', alpha_max, Iz1_max); %[output:8c7b67d4]
 
 % Equivalent linear acceleration at pendulum pivot
@@ -139,14 +137,9 @@ swingup.par.plant.g     = g;
 swingup.par.plant.Iz_1  = Iz_1;
 swingup.par.plant.u_sat = u_sat;
 
-% FSFB controller (copied from existing design)
-swingup.par.fsfb.Kd   = design.par.lqr.Kd;
-swingup.par.fsfb.Nbar = design.par.Nbar;
-swingup.par.fsfb.Ts = design.par.Ts; % [s] sample time
-
 % q1 return trajectory after catch
 swingup.par.trajectory.max_rate    = pi/2;    % [rad/s] linear ramp rate
-% swingup.trajectory.q1_desired  = 0.0;    % [rad] final q1 setpoint (input in simulink) %[output:7eae741e]
+% swingup.trajectory.q1_desired  = 0.0;    % [rad] final q1 setpoint (input in simulink)
 
 % Save
 if isempty(matlab.project.rootProject)
@@ -156,21 +149,21 @@ prj = matlab.project.rootProject;
 save_dir = fullfile(prj.RootFolder, 'data');
 if ~isfolder(save_dir), mkdir(save_dir); end
 save(fullfile(save_dir, 'swingup_design.mat'), 'swingup');
-fprintf('Parameters saved to: %s\n', fullfile(save_dir, 'swingup_design.mat'));
+fprintf('Parameters saved to: %s\n', fullfile(save_dir, 'swingup_design.mat')); %[output:6881a0c0]
 
 %[appendix]{"version":"1.0"}
 %---
 %[metadata:view]
-%   data: {"layout":"onright","rightPanelPercent":11.7}
+%   data: {"layout":"onright","rightPanelPercent":38.1}
 %---
 %[output:8c7b67d4]
-%   data: {"dataType":"text","outputData":{"text":"alpha_max = 178.0 rad\/s²  (at min inertia 1.12e-03 kgm²)\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"alpha_max = 133.5 rad\/s²  (at min inertia 1.12e-03 kgm²)\n","truncated":false}}
 %---
 %[output:48c0be16]
-%   data: {"dataType":"text","outputData":{"text":"n = u_lin_max\/g = 2.740\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"n = u_lin_max\/g = 2.055\n","truncated":false}}
 %---
 %[output:682509ab]
-%   data: {"dataType":"text","outputData":{"text":"Predicted swings needed: 1  (n = 2.740)\n","truncated":false}}
+%   data: {"dataType":"text","outputData":{"text":"Predicted swings needed: 1  (n = 2.055)\n","truncated":false}}
 %---
 %[output:138763b4]
 %   data: {"dataType":"text","outputData":{"text":"k_e = 20000.0  (saturates at |E-E0| = mgl = 0.0313 J)\n","truncated":false}}
@@ -178,6 +171,6 @@ fprintf('Parameters saved to: %s\n', fullfile(save_dir, 'swingup_design.mat'));
 %[output:8a0e2ca5]
 %   data: {"dataType":"text","outputData":{"text":"Catch region: |q2 - pi| < 15.0° and |E| < 0.0094 J\n","truncated":false}}
 %---
-%[output:7eae741e]
-%   data: {"dataType":"text","outputData":{"text":"Swing-up design saved to: C:\\Users\\u0130154\\MATLAB\\projects\\digtwin_labo\\data\\swingup_design.mat\n","truncated":false}}
+%[output:6881a0c0]
+%   data: {"dataType":"text","outputData":{"text":"Parameters saved to: C:\\Users\\u0130154\\MATLAB\\projects\\digtwin_labo\\data\\swingup_design.mat\n","truncated":false}}
 %---

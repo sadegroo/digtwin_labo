@@ -78,6 +78,7 @@ All scripts use: `z = [q1; v1; q2; v2]` where q = angle (rad), v = angular veloc
 | `RRpendulum_digtwin_BLDC.slx` | BLDC motor torque control interface |
 | `RRpendulum_digtwin_FSFB.slx` | Full state feedback controller (kinematic mode) |
 | `RRpendulum_digtwin_FSFB_BLDC.slx` | **Primary model**: UKF observer + LQR + swing-up, codegen-ready |
+| `RRpendulum_digtwin_FSFB_BLDC_accelctrl.slx` | BLDC with cascade acceleration controller (inner accel + outer LQR) |
 | `RRpendulum_digtwin_FSFB_BLDC_noUI.slx` | BLDC state feedback without UI (headless codegen) |
 | `RRpendulum_digtwin_swingup.slx` | Standalone swing-up control |
 | `RRpendulum_forcedmovement.slx` | Forced oscillation analysis |
@@ -97,6 +98,8 @@ All scripts use: `z = [q1; v1; q2; v2]` where q = angle (rad), v = angular veloc
         ↓
 3. Choose a design script:
    ├── RRpendulum_FSFB_controldesign_torque.m  → LQR gains → data/FSFB_torque_design.mat
+   ├── RRpendulum_FSFB_controldesign_accel.m   → LQR gains (accel input) → data/FSFB_accel_design.mat
+   ├── RRpendulum_axis1acc_controldesign.m      → Inner-loop accel ctrl → data/axis1acc_design.mat
    ├── RRpendulum_UKF_design.m                 → UKF observer → data/UKF_design.mat
    ├── RRpendulum_swingup_controldesign.m      → Swing-up + catch → data/swingup_design.mat
    └── RRpendulum_BLDC_drive_params.m          → Motor/drive PI gains → data/BLDC_drive_params.mat
@@ -203,12 +206,31 @@ All scripts use: `z = [q1; v1; q2; v2]` where q = angle (rad), v = angular veloc
 
 ---
 
+#### `RRpendulum_FSFB_controldesign_accel.m`
+
+**Purpose:** LQR controller design with acceleration input (assumes perfect axis-1 acceleration tracking via inner-loop controller). Derives the acceleration-input plant algebraically from the torque-input linearization: axis 1 becomes a pure double integrator, pendulum coupling preserved through `r/l`.
+
+**Outputs:** `data/FSFB_accel_design.mat` containing `design_accel` struct with `.par` (LQR gains Kd/Nbar for acceleration commands), `.mlobj` (ss objects), and `.meta` (closed-loop poles, traceability).
+
+**Dependencies:** `RRpendulum_EOM.mat`, `RRpendulum_params_BLDC.mat`
+
+---
+
+#### `RRpendulum_axis1acc_controldesign.m`
+
+**Purpose:** Design the inner-loop acceleration controller gains for `ctrl_axis1_acc`. Model-based inverse-dynamics feedforward with integral action on velocity error and back-calculation anti-windup. Includes bandwidth/pole analysis and outer-loop interaction assessment.
+
+**Outputs:** `data/axis1acc_design.mat` containing `axis1acc` struct with `.par` (Ki, tau_f_aw, saturation limits) and `.meta` (pole placement, bandwidth analysis, Meff range).
+
+**Dependencies:** `RRpendulum_params_BLDC.mat`, `compute_Meff.m`
+
+---
+
 #### Other Scripts
 
 | Script | Purpose |
 |--------|---------|
 | `score_competition.m` | Competition scoring tool (see [Competition Scoring](#competition-scoring) below) |
-| `RRpendulum_FSFB_controldesign_accel.m` | LQR design with acceleration-command interface (BLDC variant) |
 | `RRpendulum_FSFB_sensitivity_analysis.m` | Sensitivity analysis of LQR gains to parameter variations |
 | `RRpendulum_decoupledLuenberger.m` | Decoupled Luenberger observer design (superseded by UKF) |
 | `RRpendulum_kinctrl_numericalsetup.m` | Legacy parameter setup for kinematic control models |
@@ -224,6 +246,8 @@ All scripts use: `z = [q1; v1; q2; v2]` where q = angle (rad), v = angular veloc
 | `RRpendulum_dynamics_ct.m` | Numerical continuous-time dynamics f(z,u) for simulation and UKF |
 | `ukf_observer_step.m` | Stateless UKF predict+update step (RK4, diagonal-loading Cholesky repair, Joseph-form update, velocity clamping, NaN firewall) |
 | `swingup_energy_controller.m` | Astrom-Furuta energy feedback control law |
+| `compute_Meff.m` | Effective inertia on actuated joint via Schur complement (auto-generated) |
+| `compute_h.m` | Nonlinear coupling/gravity/damping terms via Schur complement (auto-generated) |
 | `RRpendulum_totalIz1.m` | Configuration-dependent total inertia at joint 1 |
 | `PendulumEnergy.m` | Compute pendulum total mechanical energy |
 | `rotationMatrixToZYXEuler.m` | Rotation matrix to ZYX Euler angles |
@@ -239,9 +263,11 @@ All design `.mat` files follow a **`.par` / `.meta` / `.mlobj`** struct conventi
 |------|----------|---------------|-------------|
 | `RRpendulum_EOM.mat` | `EOM` | — | Symbolic equations of motion, Jacobians, M/C/G matrices |
 | `RRpendulum_params_BLDC.mat` | `params` | `.mech`, `.act`, `.sens`, `.ic` | Physical parameters (mechanism, actuation, sensing, ICs) |
-| `FSFB_torque_design.mat` | `design` | `.par.lqr`, `.par.plant`, `.par.Nbar`, `.mlobj.plant` | LQR controller: discrete gains, plant matrices, ss objects |
+| `FSFB_torque_design.mat` | `design` | `.par.lqr`, `.par.plant`, `.par.Nbar`, `.mlobj.plant` | LQR controller (torque input): discrete gains, plant matrices, ss objects |
+| `FSFB_accel_design.mat` | `design_accel` | `.par.lqr`, `.par.plant`, `.par.Nbar`, `.mlobj.plant` | LQR controller (accel input): gains for cascade architecture |
+| `axis1acc_design.mat` | `axis1acc` | `.par.Ki`, `.par.tau_f_aw`, `.par.tau_min/max` | Inner-loop accel controller: integral gain, anti-windup, saturation |
 | `UKF_design.mat` | `ukf` | `.par.noise`, `.par.sigma`, `.par.ic`, `.par.dims` | UKF observer: noise covariances, sigma-point weights, P0 |
-| `swingup_design.mat` | `swingup` | `.par.energy`, `.par.catch`, `.par.fsfb`, `.par.plant` | Swing-up: energy gains, catch thresholds, FSFB catch gains |
+| `swingup_design.mat` | `swingup` | `.par.energy`, `.par.catch`, `.par.plant`, `.par.trajectory` | Swing-up: energy gains, catch thresholds, trajectory settings |
 | `BLDC_drive_params.mat` | `drive` | `.par.motor`, `.par.timing`, `.par.torque_pi`, `.par.speed_pi` | Motor/drive: electrical params, PI gains (SI), filters, protection |
 | `damping_model.mat` | - | — | Identified damping parameters from model fitting |
 | `damping_real.mat` | - | — | Damping coefficients measured from real hardware |
